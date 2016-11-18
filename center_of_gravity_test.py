@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import igraph as ig
 import math
 import re
@@ -35,7 +36,7 @@ def main(filename, fixed_vertices):
 
     # Display graphs
     visual_style={}
-    visual_style['bbox']=(600,600)
+    visual_style['bbox']=(1200,1200)
     visual_style['margin']=50
     visual_style['vertex_label']=g.vs.indices
 
@@ -70,8 +71,8 @@ def load_tsv_edges(data_file_name, directed=False):
     return g
 
 if __name__=="__main__":
-    example_to_use = 1
-    filenames = ["square_graph.txt", "pentagon_graph.txt"]
-    fixed_vertices = [[0,1,2,3],[0,1,2,3,4]]
+    example_to_use = 2
+    filenames = ["square_graph.txt", "pentagon_graph.txt", "triangle_graph-66.txt"]
+    fixed_vertices = [[0,1,2,3],[0,1,2,3,4],[0,1,2]]
     
     main(filenames[example_to_use],fixed_vertices[example_to_use])
