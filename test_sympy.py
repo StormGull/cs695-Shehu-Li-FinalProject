@@ -130,8 +130,11 @@ def split_network(st_numbering, tangent_line, tangent_points):
     ordering = [(v, p) for v, p in enumerate(st_numbering)]
     ordering.sort(key=key_func)
     
+    # Add all vertices to one set or the other, except those used to
+    # create the tangent line. Then add them later.
+
     V1, V2 = set(), set()
-    found_tangent_vertices = 0
+    found_tangent_vertices = False
     for v, _ in ordering:
         if found_tangent_vertices:
             if v not in tangent_points:
@@ -141,6 +144,10 @@ def split_network(st_numbering, tangent_line, tangent_points):
         else:
             V1.add(v)
     
+    # The theory says we can always adjust the line that runs through
+    # the two vertices that created the tangent in a way that puts
+    # reverses which community they are in. So just do that without
+    # fiddling with the geometry.
     V1a, V2a = set(V1), set(V2)
     V1b, V2b = set(V1), set(V2)
 
@@ -151,7 +158,21 @@ def split_network(st_numbering, tangent_line, tangent_points):
 
     return V1a, V2a, V1b, V2b
 
-def main(filename, fixed_vertices):
+def evaluate_split(V1, V2, power):
+    p1 = sum(power[v] for v in V1)
+    p2 = sum(power[v] for v in V2)
+    size_ratio = max([len(V1)/len(V2), len(V2)/len(V1)])
+    return [p1, p2, size_ratio]
+
+def report_partition(V1, V2, p1, p2, size_ratio):
+    print("""Split: size ratio={0}
+    V1: {1} power={2}
+    V2: {3} power={4}
+""".format(size_ratio, 
+           ",".join(map(str,sorted(V1))), p1,
+           ",".join(map(str,sorted(V2))), p2))
+
+def main(filename, fixed_vertices, draw):
     g = cs695util.load_tsv_edges("data/" + filename, False)
     positions = make_convex_x_embedding(g, fixed_vertices)
 
@@ -163,6 +184,8 @@ def main(filename, fixed_vertices):
     edges        = [[e.source, e.target] for e in g.es]
     sym_edges    = [geo.Segment(points[e.source], points[e.target]) for e in g.es]
     power        = assign_power(g)
+
+    partitions = []
 
     # Find the line formed by each pair of vertices
     lines = []
@@ -177,6 +200,9 @@ def main(filename, fixed_vertices):
                     #                lines.append(line_with_vertices(line, i, j))
                     lines.append(line)
                 
+                    # The line from the two vertices to the circle needs to be perpendicular
+                    # to the resulting tangent line, so center the circle at the midpoint of
+                    # the two vertices.
                     center = geo.Point((line.p1.x + line.p2.x)/2.0, (line.p1.y + line.p2.y)/2.0)
                     center_distance = base_center.distance(center)
                     circle = geo.Circle(center, base_radius + center_distance)
@@ -207,10 +233,17 @@ def main(filename, fixed_vertices):
                         projection_point = tangent_line_1.intersection(line_to_tangent)
                         st_numbering.append(projection_point[0])
 
-#                    pdb.set_trace()
                     V1a, V2a, V1b, V2b = split_network(st_numbering, tangent_line_1, (i, j))
-                    draw_st_numbering(circle, points, sym_edges, tangent_line_1, line, lines_to_tangent, st_numbering, V1a, V2a, power)
-                    draw_st_numbering(circle, points, sym_edges, tangent_line_1, line, lines_to_tangent, st_numbering, V1b, V2b, power)
+
+                    partitions.append([V1a, V2a] + evaluate_split(V1a, V2a, power))
+                    report_partition(*partitions[-1])
+                    if draw:
+                        draw_st_numbering(circle, points, sym_edges, tangent_line_1, line, lines_to_tangent, st_numbering, V1a, V2a, power)
+
+                    partitions.append([V1b, V2b] + evaluate_split(V1b, V2b, power))
+                    report_partition(*partitions[-1])
+                    if draw:
+                        draw_st_numbering(circle, points, sym_edges, tangent_line_1, line, lines_to_tangent, st_numbering, V1b, V2b, power)
     return
 
 def get_dist(pos1, pos2):
@@ -219,8 +252,9 @@ def get_dist(pos1, pos2):
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
 if __name__=="__main__":
-    example_to_use = 3
+    draw = False
+    example_to_use = 2
     filenames = ["square_graph.txt", "pentagon_graph.txt", 'triangle_graph.txt', 'triangle_graph-3.txt']
     fixed_vertices = [[0,1,2,3],[0,1,2,3,4], [0, 1, 2], [0, 1, 2]]
     
-    main(filenames[example_to_use],fixed_vertices[example_to_use])
+    main(filenames[example_to_use],fixed_vertices[example_to_use], draw)
