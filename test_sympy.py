@@ -108,12 +108,16 @@ def assign_power(g):
     for v in g.vs.indices:
         if num_supply == half:
             power.append(-1)
+            num_sink += 1
         elif num_sink == half:
             power.append(1)
+            num_supply += 1
         elif random.random() < .5:
             power.append(-1)
+            num_sink += 1
         else:
             power.append(1)
+            num_supply += 1
     return power
 
 def split_network(st_numbering, tangent_line, tangent_points):
@@ -203,7 +207,7 @@ def main(filename, fixed_vertices):
                         projection_point = tangent_line_1.intersection(line_to_tangent)
                         st_numbering.append(projection_point[0])
 
-                    pdb.set_trace()
+#                    pdb.set_trace()
                     V1a, V2a, V1b, V2b = split_network(st_numbering, tangent_line_1, (i, j))
                     draw_st_numbering(circle, points, sym_edges, tangent_line_1, line, lines_to_tangent, st_numbering, V1a, V2a, power)
                     draw_st_numbering(circle, points, sym_edges, tangent_line_1, line, lines_to_tangent, st_numbering, V1b, V2b, power)
