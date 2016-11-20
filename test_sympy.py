@@ -69,30 +69,83 @@ def render_line(line, **kw):
     ys = [line.p1.y, line.p2.y]
     return plt.Line2D(xs, ys, **kw)
 
-def draw_st_numbering(circle, points, edges, tangent, tangent_points, lines_to_tangent, st_numbering, positions):
+def draw_st_numbering(circle, points, edges, tangent, tangent_points, lines_to_tangent, st_numbering, V1=None, V2=None, power=None):
     pc = lambda p: [p.x, p.y]
 
     plt.gca().add_patch(plt.Circle((circle.center.x, circle.center.y), radius=circle.radius, fill=False))
 
-    for p in points:
+    for v, p in enumerate(points):
         color = 'r'
-        if p in tangent_points:
+        if power and power[v] < 0:
             color = 'blue'
-        plt.gca().add_patch(plt.Circle(pc(p), radius=0.03, fc=color))
+        plt.gca().add_patch(plt.Circle(pc(p), radius=0.04, fc=color))
 
     for e in edges:
         plt.gca().add_line(render_line(e, lw=2.0, color='red'))
 
+    plt.gca().add_line(render_line(tangent_points, color='blue', ls='--'))
+
     if tangent:
         plt.gca().add_line(render_line(tangent, lw=2.0, color='blue'))
 
-    for p in st_numbering:
-        plt.gca().add_patch(plt.Circle(pc(p), radius=0.03, fc='green'))
+    for v, p in enumerate(st_numbering):
+        color = 'black'
+        if V2 and v in V2:
+            color = 'white'
+        plt.gca().add_patch(plt.Circle(pc(p), radius=0.03, fc=color))
 
     plt.axis('scaled')
     plt.show()
 
     return
+
+def assign_power(g):
+    # Assign power supply 1, sink -1 randomly (but evenly)
+    power = []
+    half  = len(g.vs)/2
+    num_supply = 0
+    num_sink = 0
+    for v in g.vs.indices:
+        if num_supply == half:
+            power.append(-1)
+        elif num_sink == half:
+            power.append(1)
+        elif random.random() < .5:
+            power.append(-1)
+        else:
+            power.append(1)
+    return power
+
+def split_network(st_numbering, tangent_line, tangent_points):
+    # order vertices by y position if slope > 1, otherwise
+    # by x position
+    if abs(tangent_line.slope) > 1:
+        key_func = lambda x: x[1].y
+    else:
+        key_func = lambda x: x[1].x
+    ordering = [(v, p) for v, p in enumerate(st_numbering)]
+    ordering.sort(key=key_func)
+    
+    V1, V2 = set(), set()
+    found_tangent_vertices = 0
+    for v, _ in ordering:
+        if found_tangent_vertices:
+            if v not in tangent_points:
+                V2.add(v)
+        elif v in tangent_points:
+            found_tangent_vertices = True
+        else:
+            V1.add(v)
+    
+    V1a, V2a = set(V1), set(V2)
+    V1b, V2b = set(V1), set(V2)
+
+    V1a.add(tangent_points[0])
+    V2a.add(tangent_points[1])
+    V1b.add(tangent_points[1])
+    V2b.add(tangent_points[0])
+
+    return V1a, V2a, V1b, V2b
 
 def main(filename, fixed_vertices):
     g = cs695util.load_tsv_edges("data/" + filename, False)
@@ -105,6 +158,7 @@ def main(filename, fixed_vertices):
     points       = [geo.Point(*v) for v in positions]
     edges        = [[e.source, e.target] for e in g.es]
     sym_edges    = [geo.Segment(points[e.source], points[e.target]) for e in g.es]
+    power        = assign_power(g)
 
     # Find the line formed by each pair of vertices
     lines = []
@@ -128,14 +182,14 @@ def main(filename, fixed_vertices):
                     intersection_points = circle.intersection(line)
 
                     # Find tangent lines at the points of intersection
-                    line_tangents = circle.tangent_lines(intersection_points[0])
-                    if not line_tangents:
-                        print("Found no line_tangents")
-                        draw_st_numbering(circle, points, sym_edges, None, line, None, [], [])
+                    tangent_lines = circle.tangent_lines(intersection_points[0])
+                    if not tangent_lines:
+                        print("Found no tangent_lines")
+                        draw_st_numbering(circle, points, sym_edges, None, line, None, [])
                         pdb.set_trace()
                         continue
 
-                    line_tangent_1 = circle.tangent_lines(intersection_points[1])[0]
+                    tangent_line_1 = circle.tangent_lines(intersection_points[1])[0]
 
                     # Find intersection point for each 
                     # Just use one...not sure how to pick best, or if there is a best.
@@ -144,12 +198,15 @@ def main(filename, fixed_vertices):
                     # Find intersection for every point
                     lines_to_tangent = []
                     for p in points:
-                        line_to_tangent = line_tangent_1.perpendicular_line(p)
+                        line_to_tangent = tangent_line_1.perpendicular_line(p)
                         lines_to_tangent.append(line_to_tangent)
-                        projection_point = line_tangent_1.intersection(line_to_tangent)
+                        projection_point = tangent_line_1.intersection(line_to_tangent)
                         st_numbering.append(projection_point[0])
-    
-                    draw_st_numbering(circle, points, sym_edges, line_tangent_1, line, lines_to_tangent, st_numbering, positions)
+
+                    pdb.set_trace()
+                    V1a, V2a, V1b, V2b = split_network(st_numbering, tangent_line_1, (i, j))
+                    draw_st_numbering(circle, points, sym_edges, tangent_line_1, line, lines_to_tangent, st_numbering, V1a, V2a, power)
+                    draw_st_numbering(circle, points, sym_edges, tangent_line_1, line, lines_to_tangent, st_numbering, V1b, V2b, power)
     return
 
 def get_dist(pos1, pos2):
@@ -158,7 +215,7 @@ def get_dist(pos1, pos2):
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
 if __name__=="__main__":
-    example_to_use = 2
+    example_to_use = 3
     filenames = ["square_graph.txt", "pentagon_graph.txt", 'triangle_graph.txt', 'triangle_graph-3.txt']
     fixed_vertices = [[0,1,2,3],[0,1,2,3,4], [0, 1, 2], [0, 1, 2]]
     
