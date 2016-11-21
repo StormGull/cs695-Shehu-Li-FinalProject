@@ -8,61 +8,8 @@ import pdb
 from sympy import geometry as geo
 import cs695util
 from collections import namedtuple
-
-def assign_initial_positions(g, fixed_vertices):
-    return list(g.layout_kamada_kawai())
-
-# I'm not sure why I redefined this function. Made
-# sense at the time :-)
-def assign_initial_positions(g, fixed_vertices):
-    V = g.vs.indices
-    positions = [None for v in V]
-
-    # Just picked these since they're the same
-    # as the triangle points in the
-    # non-triangle version
-    positions[fixed_vertices[0]] = [0.0, 0.0]
-    positions[fixed_vertices[1]] = [1.0, 0.0]
-    positions[fixed_vertices[2]] = [0.0, 1.0]
-
-    seen = set()
-    for v in V:
-        if v not in fixed_vertices:
-            while True:
-                p = (random.random(), random.random())
-                if p not in seen:
-                    seen.add(p)
-                    positions[v] = list(p)
-                    break
-    return positions
-
-def make_convex_x_embedding(g, fixed_vertices):
-    V = list(g.vs.indices)    
-    positions = assign_initial_positions(g, fixed_vertices)
-    loose_vertices = [v for v in V if v not in fixed_vertices]
-
-    d_stop = 0.0000005;
-    max_distance_moved = d_stop + 1
-    num_iterations = 0
-    while max_distance_moved > d_stop:
-        max_distance_moved = 0
-        for v_index in loose_vertices:
-            x_sum = 0
-            y_sum = 0
-            nh_list = g.neighbors(v_index)
-            for node in nh_list:
-                x_sum += positions[node][0]
-                y_sum += positions[node][1]
-            old_pos = [positions[v_index][0], positions[v_index][1]]
-            new_pos = [x_sum / len(nh_list), y_sum / len(nh_list)]
-            distance_diff = get_dist(old_pos, new_pos)
-            if distance_diff > max_distance_moved:
-                max_distance_moved = distance_diff
-            positions[v_index] = new_pos
-        num_iterations += 1
-    
-    print("Number of iterations: {0}".format(num_iterations))
-    return positions
+import center_of_gravity_test as cog
+import sys
 
 def render_line(line, **kw):
     xs = [line.p1.x, line.p2.x]
@@ -106,10 +53,10 @@ def assign_power(g):
     num_supply = 0
     num_sink = 0
     for v in g.vs.indices:
-        if num_supply == half:
+        if num_supply >= half:
             power.append(-1)
             num_sink += 1
-        elif num_sink == half:
+        elif num_sink >= half:
             power.append(1)
             num_supply += 1
         elif random.random() < .5:
@@ -120,15 +67,24 @@ def assign_power(g):
             num_supply += 1
     return power
 
+float_point = namedtuple('float_point', ['x', 'y'])
+
 def split_network(st_numbering, tangent_line, tangent_points):
     # order vertices by y position if slope > 1, otherwise
     # by x position
-    if abs(tangent_line.slope) > 1:
+    st_numbering = [float_point(float(p.x), float(p.y)) for p in st_numbering]
+    slope = float(tangent_line.slope)
+    if abs(slope) > 1:
         key_func = lambda x: x[1].y
     else:
         key_func = lambda x: x[1].x
     ordering = [(v, p) for v, p in enumerate(st_numbering)]
-    ordering.sort(key=key_func)
+
+    try:
+        ordering.sort(key=key_func)
+    except Exception as e:
+        pdb.set_trace()
+        foo = 1
     
     # Add all vertices to one set or the other, except those used to
     # create the tangent line. Then add them later.
@@ -172,9 +128,10 @@ def report_partition(V1, V2, p1, p2, size_ratio):
            ",".join(map(str,sorted(V1))), p1,
            ",".join(map(str,sorted(V2))), p2))
 
-def main(filename, fixed_vertices, draw):
-    g = cs695util.load_tsv_edges("data/" + filename, False)
-    positions = make_convex_x_embedding(g, fixed_vertices)
+def main(filename, fixed_vertices=None, draw=False):
+#    pdb.set_trace()
+    g = cog.load_graph("data/" + filename, False)
+    fixed_vertices, positions = cog.find_positions(g, fixed_vertices, draw=draw)
 
     fixed_points = [geo.Point(*positions[x]) for x in fixed_vertices]
     base_circle  = geo.Circle(*fixed_points)
@@ -194,18 +151,26 @@ def main(filename, fixed_vertices, draw):
         for j, v2 in enumerate(points):
             if j != i and (i,j) not in seen:
                 line = geo.Line(v1, v2)
-                seen.add((i, j))
-                seen.add((j, i))
                 if line.slope >= 0.0:
+                    seen.add((i, j))
+                    seen.add((j, i))
                     #                lines.append(line_with_vertices(line, i, j))
                     lines.append(line)
                 
                     # The line from the two vertices to the circle needs to be perpendicular
                     # to the resulting tangent line, so center the circle at the midpoint of
                     # the two vertices.
+
                     center = geo.Point((line.p1.x + line.p2.x)/2.0, (line.p1.y + line.p2.y)/2.0)
                     center_distance = base_center.distance(center)
-                    circle = geo.Circle(center, base_radius + center_distance)
+                    radius = base_radius + center_distance
+                    circle = geo.Circle(center, radius)
+
+                    while True:
+                        if all(map(lambda p: circle.center.distance(p) <= radius, points)):
+                            break
+                        radius *= 1.1
+                        circle = geo.Circle(center, radius)
 
                     # Find intersection points for each line. There will be two for each, 
                     # one of which we'll filter later.
@@ -246,15 +211,12 @@ def main(filename, fixed_vertices, draw):
                         draw_st_numbering(circle, points, sym_edges, tangent_line_1, line, lines_to_tangent, st_numbering, V1b, V2b, power)
     return
 
-def get_dist(pos1, pos2):
-    x1, y1 = pos1
-    x2, y2 = pos2    
-    return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-
 if __name__=="__main__":
-    draw = False
-    example_to_use = 2
-    filenames = ["square_graph.txt", "pentagon_graph.txt", 'triangle_graph.txt', 'triangle_graph-3.txt']
-    fixed_vertices = [[0,1,2,3],[0,1,2,3,4], [0, 1, 2], [0, 1, 2]]
+    draw = True
+    example_to_use = 4
+    if len(sys.argv) > 1:
+        example_to_use = int(sys.argv[1])
+    filenames = ["square_graph.txt", "pentagon_graph.txt", 'triangle_graph.txt', 'triangle_graph-3.txt', "GMLFile4.gml"]
+    fixed_vertices = [[0,1,2,3],[0,1,2,3,4], [0, 1, 2], [0, 1, 2], None]
     
     main(filenames[example_to_use],fixed_vertices[example_to_use], draw)

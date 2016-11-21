@@ -1,15 +1,14 @@
+#!/usr/bin/python3
 import igraph as ig
 import networkx as nx
 import math
 import re
 import itertools
+import sys
 
 comments_re = re.compile(r'#.*')
 
-def main(filename, fixed_vertices=None):
-     
-    g = load_graph("data/" + filename, False)
-    
+def find_positions(g, fixed_vertices=None, draw=True):
     # Find all cycles of length 3
     if fixed_vertices is None:
         edge_list = g.get_edgelist()
@@ -23,7 +22,8 @@ def main(filename, fixed_vertices=None):
     visual_style['margin']=50
     #visual_style['vertex_label']=g.vs.indices
     visual_style['vertex_size']=5
-    
+
+    best_cycle = None
     # Get positions and plot graphs
     if fixed_vertices is None:
         max_min_dist = 0
@@ -39,13 +39,22 @@ def main(filename, fixed_vertices=None):
                 best_cycle = cycle
             #print("Minimum distance between points: {0}".format(min_dist))
         print("Maximum min distance between points: {0} (cycle {1})".format(max_min_dist, best_cycle))
-        ig.plot(g, layout=max_min_dist_pos, **visual_style)
-                   
+        if draw:
+            ig.plot(g, layout=max_min_dist_pos, **visual_style)
     else:
+        best_cycle = list(fixed_vertices)
         positions = get_rubber_band_positions(g, fixed_vertices)
-        #ig.plot(g, layout=positions, **visual_style)
+        if draw:
+            ig.plot(g, layout=positions, **visual_style)
         print("Fixed positions: {0}".format(fixed_vertices))
         print("Minimum distance between points: {0}".format(get_min_dist_between_v(positions)))
+
+    return best_cycle, positions
+
+def main(filename, fixed_vertices=None):
+     
+    g = load_graph("data/" + filename, False)
+    find_posistions(g, fixed_vertices=fixed_vertices)
 
     return
 
@@ -128,7 +137,10 @@ def load_graph(data_file_name, directed=False):
     
 
 if __name__=="__main__":
-    example_to_use = 4
+    if len(sys.argv) > 1:
+        example_to_use = int(sys.argv[1])
+    else:
+        example_to_use = 4
     #filenames = ["square_graph.txt", "pentagon_graph.txt", "triangle_graph.txt", "GMLFile.gml", "GMLFile3.gml"]
     filenames = ["triangle_graph.txt", "GMLFile.gml", "GMLFile2.gml", "GMLFile3.gml", "GMLFile4.gml"]
     #fixed_vertices = [[0,1,2,3],[0,1,2,3,4],[3,4,5],[2,4,10]]
