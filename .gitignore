@@ -90,3 +90,9 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+Presentation
+*.txt
+node_file
+st-numbering*
+*.zip

@@ -1,0 +1,12 @@
+a.out
+Makefile
+*~
+readme.md
+release-notes.txt
+test.cpp
+test-intersection
+test-intersection.cpp
+*.inl
+wykobi*
+*.zip
+make-st-numbering
