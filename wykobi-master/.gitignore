@@ -6,7 +6,6 @@ release-notes.txt
 test.cpp
 test-intersection
 test-intersection.cpp
-*.inl
-wykobi*
 *.zip
 make-st-numbering
+wykobi_build

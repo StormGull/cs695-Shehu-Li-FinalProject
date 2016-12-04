@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import igraph as ig
 import networkx as nx
 import math
@@ -12,18 +13,7 @@ V_INDEX = 0
 U_INDEX = 1
 W_INDEX = 2
 
-def main(filename, fixed_vertices=None, pull_to_vertices=False):
-    start = time.clock()
-    g = load_graph("data/" + filename, False)
-    
-    # Set visual style for graph
-    visual_style={}
-    visual_style['bbox']=(1200,1200)
-    visual_style['margin']=50
-    visual_style['vertex_label']=g.vs.indices
-    visual_style['vertex_size']=15
-    
-    # Find all cycles of length 3
+def compute_positions(g, fixed_vertices, pull_to_vertices):
     if fixed_vertices is None:
         edge_list = g.get_edgelist()
         nxg = nx.Graph(edge_list)
@@ -71,16 +61,37 @@ def main(filename, fixed_vertices=None, pull_to_vertices=False):
         # Flip so the y orientation is correct (with 0,0 at the lower left)
         layout = [ [p[0],-p[1]] for p in max_min_dist_pos ]
         print(list(max_min_dist_pos))
-        end = time.clock()
-        ig.plot(g, layout=layout, **visual_style)
+#        end = time.clock()
+#        ig.plot(g, layout=layout, **visual_style)
                    
     else:
         positions = get_rubber_band_positions(g, fixed_vertices)
-        end = time.clock()
-        ig.plot(g, layout=positions, **visual_style)
+        layout = positions
+        best_cycle = fixed_vertices
+#        end = time.clock()
+#        ig.plot(g, layout=positions, **visual_style)
         print("Fixed positions: {0}".format(fixed_vertices))
         print("Minimum distance between points: {0}".format(get_min_dist_between_v(positions)))
+
+    return layout, best_cycle
+
+
+def main(filename, fixed_vertices=None, pull_to_vertices=False):
+    start = time.clock()
+    g = load_graph("data/" + filename, False)
     
+    # Set visual style for graph
+    visual_style={}
+    visual_style['bbox']=(1200,1200)
+    visual_style['margin']=50
+    visual_style['vertex_label']=g.vs.indices
+    visual_style['vertex_size']=15
+    
+    layout, fixed_vertices = compute_positions(g, fixed_vertices, pull_to_vertices)
+    
+    end = time.clock()
+    ig.plot(g, layout=layout, **visual_style)
+
     print("Time: ", end - start)
 
     return
@@ -226,7 +237,7 @@ def load_graph(data_file_name, directed=False):
         return g
 
 if __name__=="__main__":
-    example_to_use = 0
+    example_to_use = 4
     #filenames = ["square_graph.txt", "pentagon_graph.txt", "triangle_graph.txt", "GMLFile.gml", "GMLFile3.gml"]
     filenames = ["triangle_graph.txt", "GMLFile.gml", "GMLFile2.gml", "GMLFile3.gml", "GMLFile4.gml"]
     #fixed_vertices = [[0,1,2,3],[0,1,2,3,4],[3,4,5],[2,4,10]]
