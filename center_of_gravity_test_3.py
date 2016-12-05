@@ -237,9 +237,9 @@ def load_graph(data_file_name, directed=False):
         return g
 
 if __name__=="__main__":
-    example_to_use = 4
+    example_to_use = 5
     #filenames = ["square_graph.txt", "pentagon_graph.txt", "triangle_graph.txt", "GMLFile.gml", "GMLFile3.gml"]
-    filenames = ["triangle_graph.txt", "GMLFile.gml", "GMLFile2.gml", "GMLFile3.gml", "GMLFile4.gml"]
+    filenames = ["triangle_graph.txt", "GMLFile.gml", "GMLFile2.gml", "GMLFile3.gml", "GMLFile4.gml", "power_subset.gml"]
     #fixed_vertices = [[0,1,2,3],[0,1,2,3,4],[3,4,5],[2,4,10]]
     
     main(filenames[example_to_use], pull_to_vertices=True)
