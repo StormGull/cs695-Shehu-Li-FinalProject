@@ -1,5 +1,5 @@
 #include "wykobi.hpp"
-#include "wykobi_graphics_opengl.hpp"
+//#include "wykobi_graphics_opengl.hpp"
 #include <iostream>
 #include <fstream>
 #include <string>
