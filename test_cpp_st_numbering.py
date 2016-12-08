@@ -12,7 +12,6 @@ def render_line(line, **kw):
     ys = [line[0][1], line[1][1]]
     return plt.Line2D(xs, ys, **kw)
 
-
 def assign_power(g):
     # Assign power supply 1, sink -1 randomly (but evenly)
     power = []
@@ -87,7 +86,7 @@ def draw_st_numbering(graph, solution, points, power=None):
         color = 'r'
         if power and power[v] < 0:
             color = 'blue'
-        plt.gca().add_patch(plt.Circle(tuple(p), radius=0.01, fc=color))
+        plt.gca().add_patch(plt.Circle(tuple(p), radius=0.001, fc=color))
 
     for e in graph.es:
         plt.gca().add_line(render_line([points[e.source], points[e.target]], lw=0.5, color='red'))
@@ -113,7 +112,7 @@ def main(filename):
     g = cog.load_graph("data/" + filename, False)
 
     power = assign_power(g)
-    layout, best_cycle = cog.compute_positions(g, fixed_vertices=None, pull_to_vertices=False)
+    layout, best_cycle = cog.compute_positions(g, fixed_vertices=None, pull_to_vertices=True)
 
     vertex_file_name       = os.path.join("work", filename + '.' + 'positions')
     st_numbering_file_name = os.path.join("work", filename + '.' + 'st_numbering')
@@ -171,5 +170,5 @@ if __name__=="__main__":
                  "GMLFile2.gml", 
                  "GMLFile3.gml", 
                  "GMLFile4.gml", 
-                 "power_subset.gml",]
+                 "power_3_connected_subset_0047_18.gml",]
     main(filenames[example_to_use])

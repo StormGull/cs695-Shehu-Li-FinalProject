@@ -5,6 +5,11 @@ import networkx as nx
 import pdb
 import sys
 
+def save_nx_as_gml(nxgraph, file_name):
+    node_map = dict([(n, i) for i, n in enumerate(sorted(nxgraph.nodes()))])
+    edges = [(node_map[x], node_map[y]) for x,y in nxgraph.edges()]
+    ig.Graph(edges=edges).write_gml(file_name)
+
 def main():
     powerg = ig.Graph.Read_GML('data/power.gml')
     powerx = nx.Graph()
@@ -35,6 +40,7 @@ def main():
     components = list(nx.connected_components(work_graph))
     largest_component = max(components, key=lambda x: len(x))
     work_graph = nx.Graph(work_graph.subgraph(list(largest_component)))
+    save_nx_as_gml(work_graph, "data/large_power_2_connected.gml")
     
     k = 3
     iteration = 0
@@ -60,10 +66,7 @@ def main():
         nodes_to_remove = nodes_to_remove.union(nodes)
 
     if not nodes_to_remove:
-        node_map = dict([(n, i) for i, n in enumerate(sorted(work_graph.nodes()))])
-        edges = [(node_map[x], node_map[y]) for x,y in work_graph.edges()]
-        g = ig.Graph(edges=edges)
-        g.write_gml("data/power_subset.gml")
+        save_nx_as_gml(work_graph, "data/power_subset.gml")
 
     return
 
