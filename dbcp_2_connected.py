@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import display_graph as dg
 import igraph as ig
+import itertools
 import matplotlib.pyplot as plt
 import networkx as nx
 import pdb
@@ -10,6 +11,13 @@ def show_graph(g):
     nx.draw(g,with_labels=True, node_color='white',pos=nx.spring_layout(g))
     plt.show()
     
+def assign_power(g):
+    # Assign power supply 1, sink -1 randomly (but evenly)
+    power = []
+    for i, _ in g:
+        power.append(i%2 and 1 or -1)
+    random.shuffle(power)
+    return power
 
 def ig_to_nx(g):
     nxg = nx.Graph()
@@ -107,7 +115,14 @@ def find_case_1_two_connected_subgraphs(g, q, verbose=False):
         yield(nodes, disconnected_graph)
     return
 
-def do_case_1_two_connected_subgraphs(g, verbose=False):
+def partition_pseudopaths(g, q, pseudopaths):
+    if len(pseudopaths[-1]) < len(g)/q:
+        return pseudopaths, []
+    return pseudopaths[:-1], [pseudopaths[-1]]
+
+def do_case_1_two_connected_subgraphs(g, q, power, verbose=False):
+    q *= 1.0 # make float
+
     found_count = 0
     for nodes, subgraph in find_case_1_two_connected_subgraphs(g, 4, verbose):
         found_count += 1
@@ -115,14 +130,21 @@ def do_case_1_two_connected_subgraphs(g, verbose=False):
             show_graph(subgraph)
         node_list = list(nodes)
         pseudopaths = make_pseudopaths(g, node_list, subgraph)
+        S1, S2 = partition_pseudopaths(g, q, pseudopaths)
+        Q1 = itertools.chain_from_iterable(S1)
+        Q2 = itertools.chain_from_iterable(S2)
         
+        if len(Q2) > len(Q1):
+            Q1, Q2 = Q2, Q1
+
+
 
     print("Found {} case-1 subgraphs".format(found_count))
     return
 
 def make_pseudopaths(graph, separating_nodes, subgraph):
     # lists of lists of nodes. Each sub
-    pseudopaths = [[separating_nodes[0]]]
+    pseudopaths = []
 
     # Do a BFS through each subcomponent and add nodes to list of pseudopaths.
     pdb.set_trace()
@@ -136,8 +158,9 @@ def make_pseudopaths(graph, separating_nodes, subgraph):
                     seen_nodes.add(t)
                     next_path.append(t)
             pseudopaths.append(next_path)
-    pseudopaths.append([separating_nodes[1]])
-        
+
+    # Need to sort in increasing order by size:
+    pseudopaths.sort(key=lambda x: len(x))
     return pseudopaths
 
 def extract_power_k_connected(verbose=False):
@@ -153,10 +176,11 @@ def extract_power_k_connected(verbose=False):
                 nx_to_ig(subgraph).write_gml(file_name)
 
 def main(file_name, verbose):
-    nxg = ig_to_nx(ig.Graph.Read_GML(file_name))
+    g = ig_to_nx(ig.Graph.Read_GML(file_name))
     if verbose:
-        show_graph(nxg)
-    do_case_1_two_connected_subgraphs(nxg, verbose=verbose)
+        show_graph(g)
+    power = assign_power(g)
+    do_case_1_two_connected_subgraphs(g, 4, power, verbose=verbose)
     return
 
 if __name__=='__main__':
