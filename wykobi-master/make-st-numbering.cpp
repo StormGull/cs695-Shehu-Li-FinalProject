@@ -13,7 +13,7 @@
 using namespace std;
 namespace pt = boost::property_tree;
 
-typedef double ord_type;
+typedef long double ord_type;
 typedef vector<ord_type> position_vec;
 typedef pair<ord_type, ord_type> coordinate;
 typedef vector<coordinate> coordinate_vec;

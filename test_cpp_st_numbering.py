@@ -7,6 +7,9 @@ import os
 import pdb
 import random
 
+class SubgraphNotConnectedException(Exception):
+    pass
+
 def render_line(line, **kw):
     xs = [line[0][0], line[1][0]]
     ys = [line[0][1], line[1][1]]
@@ -21,7 +24,11 @@ def assign_power(g):
     return power
 
 def slope(line):
-    return (line[1][1] - line[0][1])/(line[1][0] - line[0][0])
+    try:
+        return (line[1][1] - line[0][1])/(line[1][0] - line[0][0])
+    except ZeroDivisionError:
+        return float('inf')
+
 
 def split_network(solution):
     # order vertices by y position if slope > 1, otherwise
@@ -44,7 +51,6 @@ def split_network(solution):
     
     # Add all vertices to one set or the other, except those used to
     # create the tangent line. Then add them later.
-
     V1, V2 = set(), set()
     found_tangent_vertices = False
     for v, _ in ordering:
@@ -107,6 +113,13 @@ def ensure_dir(dir_name):
         return
     os.makedirs(dir_name)
 
+def check_connectedness(g, V1, V2):
+    for nodes in (V1, V2):
+        subgraph = g.subgraph(nodes)
+        if len(subgraph.components()) > 1:
+            return False
+    return True
+
 def main(filename):
     ensure_dir("work")
     g = cog.load_graph("data/" + filename, False)
@@ -125,8 +138,10 @@ def main(filename):
 
     st_numbering = None
     with open(st_numbering_file_name) as st_numbering_file:
-        # -nan stuff is hack to deal with division by zero or something errors
-        # coming out of the C++ program.
+        # -nan stuff is hack to deal with errors related to floating point precision
+        # coming out of the C++ program. We had to hack the Boost C++ json-writing code
+        # to write numbers without quotes, so it causes nan to not have quotes, which the
+        # json parser doesn't like.
         st_numbering = json.loads(''.join([l.replace('-nan', '"-nan"') for l in st_numbering_file.readlines()]))
 
     results = []
@@ -135,17 +150,17 @@ def main(filename):
             any(x[1] == '-nan' for x in solution["st_numbering"])):
             print("Found a solution with -nan values in st_numbering")
             continue
-        try:
-            splits = split_network(solution)
+        splits = split_network(solution)
 
-            for j in range(2):
-                splits[j]['quality'] = evaluate_split(splits[j]['V1'],
-                                                      splits[j]['V2'],
-                                                      power)
-                splits[j]['solution'] = solution
-                results.append(splits[j])
-        except ZeroDivisionError:
-            print("Got a division by zero error for solution {0}".format(i))
+        for j in range(2):
+            # Check that this split produces two connected subgraphs (according to the theory it should.)
+            if not check_connectedness(g, splits[0]['V1'], splits[0]['V2']):
+                print("ERROR: subgraphs not connected")
+            splits[j]['quality'] = evaluate_split(splits[j]['V1'],
+                                                  splits[j]['V2'],
+                                                  power)
+            splits[j]['solution'] = solution
+            results.append(splits[j])
         
     best_power_value  = min([x['quality']['power'] for x in results])
     best_power_result = min([x for x in results if x['quality']['power'] == best_power_value], 
