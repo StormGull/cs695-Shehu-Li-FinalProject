@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import center_of_gravity_test_3 as cog
+import find_x_embedding_triconnected as fx
 import json
 import matplotlib.pyplot as plt
 import os
@@ -122,10 +122,10 @@ def check_connectedness(g, V1, V2):
 
 def main(filename):
     ensure_dir("work")
-    g = cog.load_graph("data/" + filename, False)
+    g = fx.load_graph("data/" + filename, False)
 
     power = assign_power(g)
-    layout, best_cycle = cog.compute_positions(g, fixed_vertices=None, pull_to_vertices=True)
+    layout, best_cycle = fx.find_x_embedding_triconnected(g, fixed_vertices=None)
 
     vertex_file_name       = os.path.join("work", filename + '.' + 'positions')
     st_numbering_file_name = os.path.join("work", filename + '.' + 'st_numbering')
