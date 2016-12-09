@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import find_x_embedding_triconnected as fx
+import find_x_embedding as fx
 import json
 import matplotlib.pyplot as plt
 import os

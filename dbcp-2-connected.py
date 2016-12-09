@@ -1,9 +1,15 @@
 #!/usr/bin/python3
+import display_graph as dg
 import igraph as ig
+import matplotlib.pyplot as plt
 import networkx as nx
 import pdb
 import sys
-import display_graph as dg
+
+def show_graph(g):
+    nx.draw(g,with_labels=True, node_color='white',pos=nx.spring_layout(g))
+    plt.show()
+    
 
 def ig_to_nx(g):
     nxg = nx.Graph()
@@ -78,7 +84,6 @@ def find_case_1_two_connected_subgraphs(g, q, verbose=False):
     size = len(all_nodes)
     q = float(q)
     max_subgraph_size = (q-1.0)/q*size
-
     
     if any(nx.all_node_cuts(g, 1)):
         raise GraphNot2ConnectedException()
@@ -107,12 +112,36 @@ def do_case_1_two_connected_subgraphs(g, verbose=False):
     for nodes, subgraph in find_case_1_two_connected_subgraphs(g, 4, verbose):
         found_count += 1
         if verbose:
-            dg.show_graph(nx_to_ig(subgraph))
-            print("\n\n***** found a case 1 2-connected subgraph from nodes {}*****\n\n".format(nodes))
+            show_graph(subgraph)
+        node_list = list(nodes)
+        pseudopaths = make_pseudopaths(g, node_list, subgraph)
+        
+
     print("Found {} case-1 subgraphs".format(found_count))
     return
 
+def make_pseudopaths(graph, separating_nodes, subgraph):
+    # lists of lists of nodes. Each sub
+    pseudopaths = [[separating_nodes[0]]]
+
+    # Do a BFS through each subcomponent and add nodes to list of pseudopaths.
+    pdb.set_trace()
+    seen_nodes = set()
+    for neighbor in graph[separating_nodes[0]]:
+        if neighbor not in seen_nodes:
+            seen_nodes.add(neighbor)
+            next_path = [neighbor]
+            for s, t in nx.bfs_edges(subgraph, source=neighbor):
+                if t not in seen_nodes:
+                    seen_nodes.add(t)
+                    next_path.append(t)
+            pseudopaths.append(next_path)
+    pseudopaths.append([separating_nodes[1]])
+        
+    return pseudopaths
+
 def extract_power_k_connected(verbose=False):
+    """Utility function to break Strogatz Watts power grid data into n-connected graphs."""
     nxg = ig_to_nx(ig.Graph.Read_GML('data/power.gml'))
     k_connected = nx.k_components(nxg)
     for k, components in k_connected.items():
@@ -123,18 +152,15 @@ def extract_power_k_connected(verbose=False):
                 print("Writing {}".format(file_name))
                 nx_to_ig(subgraph).write_gml(file_name)
 
-def main():
-#    extract_power_k_connected()
-    file_name = sys.argv[1]
-    verbose = len(sys.argv) > 2
-    if verbose:
-        dg.show_file(file_name)
+def main(file_name, verbose):
     nxg = ig_to_nx(ig.Graph.Read_GML(file_name))
-    pdb.set_trace()
-    c = nx.cycle_basis(nxg)
+    if verbose:
+        show_graph(nxg)
     do_case_1_two_connected_subgraphs(nxg, verbose=verbose)
     return
 
 if __name__=='__main__':
-    main()
+    file_name = sys.argv[1]
+    verbose = len(sys.argv) > 2
+    main(file_name, verbose)
     
