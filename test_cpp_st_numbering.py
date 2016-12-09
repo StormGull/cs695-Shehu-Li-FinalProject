@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import find_x_embedding as fx
+import find_x_embedding_triconnected as fx
 import json
 import matplotlib.pyplot as plt
 import os
@@ -112,7 +112,7 @@ def main(filename):
     g = fx.load_graph("data/" + filename, False)
 
     power = assign_power(g)
-    layout, best_cycle = fx.find_x_embedding(g, fixed_vertices=None)
+    layout, best_cycle = fx.find_x_embedding_triconnected(g, fixed_vertices=None)
 
     vertex_file_name       = os.path.join("work", filename + '.' + 'positions')
     st_numbering_file_name = os.path.join("work", filename + '.' + 'st_numbering')

@@ -13,12 +13,12 @@ W_INDEX = 2
 
 def main(filename, fixed_vertices=None, plot_best=False):
     g = load_graph("data/" + filename, False)
-    positions,_ = find_x_embedding(g)
+    positions,_ = find_x_embedding_triconnected(g)
     
     if plot_best:
         plot_x_embedding(g, positions)
 
-def find_x_embedding(g, fixed_vertices=None):
+def find_x_embedding_triconnected(g, fixed_vertices=None):
     if fixed_vertices is None:
         edge_list = g.get_edgelist()
         nxg = nx.Graph(edge_list)
