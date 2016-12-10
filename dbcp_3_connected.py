@@ -134,7 +134,7 @@ def main(filename):
         for x, y in layout:
             vertex_file.write("{0}\n{1}\n".format(x, y))
 
-    os.system('wykobi-master/make-st-numbering {0} {1}'.format(vertex_file_name, st_numbering_file_name))
+    os.system('make-st-numbering {0} {1}'.format(vertex_file_name, st_numbering_file_name))
 
     st_numbering = None
     with open(st_numbering_file_name) as st_numbering_file:
@@ -142,12 +142,15 @@ def main(filename):
         # coming out of the C++ program. We had to hack the Boost C++ json-writing code
         # to write numbers without quotes, so it causes nan to not have quotes, which the
         # json parser doesn't like.
-        st_numbering = json.loads(''.join([l.replace('-nan', '"-nan"') for l in st_numbering_file.readlines()]))
+        st_numbering = json.loads(''.join([l.replace('-nan', '"-nan"').replace('-1.#IND', '"-1.#IND"')
+                                            for l in st_numbering_file.readlines()]))
 
     results = []
     for i, solution in enumerate(st_numbering["solutions"]):
         if( any(x[0] == '-nan' for x in solution["st_numbering"]) or
-            any(x[1] == '-nan' for x in solution["st_numbering"])):
+            any(x[1] == '-nan' for x in solution["st_numbering"]) or
+            any(x[1] == '-1.#IND' for x in solution["st_numbering"]) or
+            any(x[1] == '-1.#IND' for x in solution["st_numbering"])):
             print("Found a solution with -nan values in st_numbering")
             continue
         splits = split_network(solution)
