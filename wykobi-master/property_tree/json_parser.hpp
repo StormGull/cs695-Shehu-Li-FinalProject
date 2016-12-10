@@ -10,10 +10,16 @@
 #ifndef BOOST_PROPERTY_TREE_JSON_PARSER_HPP_INCLUDED
 #define BOOST_PROPERTY_TREE_JSON_PARSER_HPP_INCLUDED
 
-#include <boost/property_tree/ptree.hpp>
+#ifdef PAUL
+#include <boost/property_tree/detail/json_parser_read.hpp>
+#include <boost/property_tree/detail/json_parser_error.hpp>
+#else
 #include <boost/property_tree/json_parser/detail/read.hpp>
-#include "detail/json_parser_write.hpp"
 #include <boost/property_tree/json_parser/error.hpp>
+#endif
+
+#include <boost/property_tree/ptree.hpp>
+#include "detail/json_parser_write.hpp"
 
 #include <fstream>
 #include <string>
