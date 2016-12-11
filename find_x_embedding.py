@@ -13,7 +13,7 @@ W_INDEX = 2
 
 def main(filename, fixed_vertices=None, plot_best=False):
     g = load_graph("data/" + filename, False)
-    positions,_ = find_x_embedding_triconnected(g)
+    positions,_,_ = find_x_embedding_triconnected(g)
     
     if plot_best:
         plot_x_embedding(g, positions)
@@ -27,11 +27,11 @@ def find_x_embedding_triconnected(g, fixed_vertices=None):
         print("Cycle basis: ", base_cycle_list)
         tri_cycle_list = [fixed_vertices for fixed_vertices in base_cycle_list if len(fixed_vertices) == 3]
         # For testing ------------------
-        tri_cycle_list = [] #Uncomment this to go back to using triangles (don't have an example without triangles yet)
-        #-------------------------------       
+        #tri_cycle_list = [] #Comment this to go back to using triangles (don't have an example without triangles yet)
+        #-------------------------------
         # If there are triangles
         if tri_cycle_list:
-            layout, best_cycle = find_x_embedding_triangle(g, tri_cycle_list)
+            layout, best_cycle, min_dist = find_x_embedding_triangle(g, tri_cycle_list)
         else:
             non_separating_cycles = get_non_separating_cycles(g)
             # For testing --------------------------
@@ -39,18 +39,20 @@ def find_x_embedding_triconnected(g, fixed_vertices=None):
             #non_separating_cycles = [[0,1,2]]
             #non_separating_cycles = [[2, 14, 3, 6, 7]]
             #---------------------------------------
-            layout, best_cycle = find_x_embedding_no_triangle(g, non_separating_cycles)
+            layout, best_cycle, min_dist = find_x_embedding_no_triangle(g, non_separating_cycles)
     else:
-        layout, best_cycle = find_x_embedding_fixed(g, fixed_vertices)
+        layout, best_cycle, min_dist = find_x_embedding_fixed(g, fixed_vertices)
+    
+    
         
-    return layout, best_cycle
+    return layout, best_cycle, min_dist
 
 def find_x_embedding_fixed(g, fixed_vertices=None):
     print("Fixed positions: {0}".format(fixed_vertices))
     positions = get_rubber_band_positions(g, fixed_vertices)
     print("Minimum distance between points: {0}".format(get_min_dist_between_v(positions)))
     
-    return positions, fixed_vertices
+    return positions, fixed_vertices, get_min_dist_between_v(positions)
 
 def find_x_embedding_triangle(g, tri_cycle_list):
     all_cycle_variations = []
@@ -75,7 +77,7 @@ def find_x_embedding_triangle(g, tri_cycle_list):
     print("Maximum min distance between points: {0} (fixed_vertices {1})".format(max_min_dist, best_cycle))
     print(list(max_min_dist_pos))
         
-    return max_min_dist_pos, best_cycle
+    return max_min_dist_pos, best_cycle, max_min_dist
 
 def find_x_embedding_no_triangle(g, non_separating_cycles):
     fixed_vertex_details = get_details_for_no_triangle(g, non_separating_cycles[0])
@@ -117,7 +119,7 @@ def find_x_embedding_no_triangle(g, non_separating_cycles):
     print("Maximum min distance between points: {0} (fixed_vertices {1})".format(max_min_dist, best_cycle))
     print(list(max_min_dist_pos))
             
-    return max_min_dist_pos, best_cycle
+    return max_min_dist_pos, best_cycle, max_min_dist
     
 def plot_x_embedding(g, positions, filename=None):
     # Set visual style for graph
@@ -413,7 +415,7 @@ def load_graph(data_file_name, directed=False):
         return g
 
 if __name__=="__main__":
-    example_to_use = 2
+    example_to_use = 1
     filenames = ["triangle_graph.txt", "power_3_connected_subset_0047_18.gml", "GMLFile.gml",
                  "GMLFile2.gml", "GMLFile3.gml", "GMLFile7.gml"]
     

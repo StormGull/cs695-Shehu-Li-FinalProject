@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import os
 import pdb
 import random
+import numpy as np
 
 class SubgraphNotConnectedException(Exception):
     pass
@@ -120,12 +121,30 @@ def check_connectedness(g, V1, V2):
             return False
     return True
 
+#Scales a 2D point
+def scale_point(point, scale):
+    point_matrix = np.array([point[0], point[1], 1])
+    scale_matrix = np.array([[scale, 0, 0],
+             [0, scale, 0],
+             [0,0,1]])
+    result = np.matmul(scale_matrix, point_matrix)
+    
+    return (result[0], result[1])
+
+def scale_positions(positions, scale):
+    return [scale_point(point,scale) for point in positions]
+
 def main(filename):
     ensure_dir("work")
     g = fx.load_graph("data/" + filename, False)
 
     power = assign_power(g)
-    layout, best_cycle = fx.find_x_embedding_triconnected(g, fixed_vertices=None)
+    layout, best_cycle, min_dist = fx.find_x_embedding_triconnected(g, fixed_vertices=None)
+    
+    # Scale graph so that the minimum distance between the points will not be too close
+    min_acceptable_dist = 0.00001
+    scale_factor = min_acceptable_dist / min_dist
+    layout = scale_positions(layout, scale_factor)
 
     vertex_file_name       = os.path.join("work", filename + '.' + 'positions')
     st_numbering_file_name = os.path.join("work", filename + '.' + 'st_numbering')
