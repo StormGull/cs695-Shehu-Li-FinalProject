@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import os
 import pdb
-import pseudopath
+import st_ordering
 import random
 import sys
 
@@ -298,8 +298,8 @@ class InvalidPseudoPathException(Exception):
     pass
 
 def make_pseudopaths(graph, separating_nodes, subgraph, verbose=False):
-    numbering = pseudopath.find_st_ordering(graph, *separating_nodes)
-    if not pseudopath.verify_pseudo_path(graph, numbering, *separating_nodes):
+    numbering = st_ordering.find_st_ordering(graph, *separating_nodes)
+    if not st_ordering.verify_st_ordering(graph, numbering, *separating_nodes):
         print("{}".format(numbering))
         raise InvalidPseudoPathException()
 

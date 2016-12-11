@@ -29,7 +29,7 @@ def show_graph_with_pseudo(g, numbering, labels=None):
 
     show_graph(g, labels=l, node_size=700)
 
-def verify_pseudo_path(g, numbering, source, target):
+def verify_st_ordering(g, numbering, source, target):
     correct = True
     for node in g.nodes():
         found_a_successor = False
@@ -151,7 +151,7 @@ class TestSTOrdering(unittest.TestCase):
         g.add_edge(6,9)
 
         ordering = find_st_ordering(g, 0, 1)
-        self.assertTrue(verify_pseudo_path(g, ordering, 0, 1))
+        self.assertTrue(verify_st_ordering(g, ordering, 0, 1))
 
     def test_make_pseudo_path_1(self):
         g = nx.Graph()
@@ -164,7 +164,7 @@ class TestSTOrdering(unittest.TestCase):
         g.add_edge(4,6)
 
         ordering = find_st_ordering(g, 0, 6)    
-        self.assertTrue(verify_pseudo_path(g, ordering, 0, 6))
+        self.assertTrue(verify_st_ordering(g, ordering, 0, 6))
 
 
     def test_make_pseudo_path_2(self):
@@ -174,7 +174,7 @@ class TestSTOrdering(unittest.TestCase):
         g.add_edge(2,3)
         g.add_edge(3,4)
         ordering = find_st_ordering(g, 0, 4)    
-        self.assertTrue(verify_pseudo_path(g, ordering, 0, 4))
+        self.assertTrue(verify_st_ordering(g, ordering, 0, 4))
 
     def test_make_pseudo_path_3(self):
         g = nx.Graph()
@@ -185,7 +185,7 @@ class TestSTOrdering(unittest.TestCase):
         g.add_edge(3,4)
         g.add_edge(4,5)
         ordering = find_st_ordering(g, 0, 5)    
-        self.assertTrue(verify_pseudo_path(g, ordering, 0, 5))
+        self.assertTrue(verify_st_ordering(g, ordering, 0, 5))
 
     def test_make_pseudo_path_4(self):
         g = nx.Graph()
@@ -198,7 +198,7 @@ class TestSTOrdering(unittest.TestCase):
         g.add_edge(6,4)
         g.add_edge(4,7)
         ordering = find_st_ordering(g, 0, 7)    
-        self.assertTrue(verify_pseudo_path(g, ordering, 0, 7))
+        self.assertTrue(verify_st_ordering(g, ordering, 0, 7))
 
     def test_make_pseudo_path_5(self):
         g = nx.Graph()
@@ -212,7 +212,7 @@ class TestSTOrdering(unittest.TestCase):
         g.add_edge(6,4)
         g.add_edge(4,7)
         ordering = find_st_ordering(g, 0, 7)    
-        self.assertTrue(verify_pseudo_path(g, ordering, 0, 7))
+        self.assertTrue(verify_st_ordering(g, ordering, 0, 7))
 
     def test_make_pseudo_path_6(self):
         g = nx.Graph()
@@ -226,7 +226,7 @@ class TestSTOrdering(unittest.TestCase):
         g.add_edge(2,7)
         g.add_edge(6,5)
         ordering = find_st_ordering(g, 0, 7)    
-        self.assertTrue(verify_pseudo_path(g, ordering, 0, 7))
+        self.assertTrue(verify_st_ordering(g, ordering, 0, 7))
 
         return
 
@@ -250,7 +250,7 @@ def test_bandes():
 
     pdb.set_trace()
     ordering = find_st_ordering(g, 0, 1)
-    verify_pseudo_path(g, ordering, 0, 1)
+    verify_st_ordering(g, ordering, 0, 1)
     print(paper_ordering(ordering))
     show_graph_with_pseudo(g, ordering, labels=list('stghfbcaed'))
     return
