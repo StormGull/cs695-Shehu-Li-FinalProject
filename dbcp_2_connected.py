@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import argparse
 from   collections import defaultdict, namedtuple, deque
 import display_graph as dg
 import functools
@@ -115,6 +116,8 @@ def find_case_1_two_connected_subgraphs(g, q, verbose=False):
     if any(nx.all_node_cuts(g, 1)):
         raise GraphNot2ConnectedException()
 
+    min_size = float('inf')
+    found_one = False
     for nodes in nx.all_node_cuts(g, 2):
         sub_graph_nodes = [n for n in all_nodes if n not in nodes]
         disconnected_graph = nx.Graph(g.subgraph(sub_graph_nodes))
@@ -123,14 +126,17 @@ def find_case_1_two_connected_subgraphs(g, q, verbose=False):
                 if verbose:
                     print("Subcomponent has size {0}".format(len(component)))
                 if len(component) >= max_subgraph_size:
-                    if verbose:
-                        print("Too big!")
+                    print("{} is too big!".format(len(component)))
+                    min_size = min(min_size, len(component))
                     raise SubgraphTooBigException()
         except SubgraphTooBigException:
-            if verbose:
-                print("For nodes {0} found a subgraph > (q-1)/q*size = {1}".format(nodes, max_subgraph_size))
+#            if verbose:
+            print("For nodes {0} found a subgraph > (q-1)/q*size = {1}".format(nodes, max_subgraph_size))
             continue
+        found_one=True
         yield(nodes, disconnected_graph)
+    if not found_one:
+        print("Found no suitable components. Smallest one was {}".format(min_size))
     return
 
 def partition_pseudopaths(g, q, pseudopaths):
@@ -200,7 +206,7 @@ def do_case_1_two_connected_subgraphs(g, q, power, verbose=False):
     for nodes, subgraph in find_case_1_two_connected_subgraphs(g, q, verbose):
         found_count += 1
         nodes_list = list(nodes)
-        pseudopaths = make_pseudopaths(g, nodes_list, subgraph)
+        pseudopaths = make_pseudopaths(g, nodes_list, subgraph, verbose)
         S1, S2 = partition_pseudopaths(g, q, pseudopaths)
         Q1 = [x for l in S1 for x in l]
         Q2 = [x for l in S2 for x in l]
@@ -216,8 +222,6 @@ def do_case_1_two_connected_subgraphs(g, q, power, verbose=False):
             print("S2: {}".format(S2))
             print("Q1: {}".format(Q1))
             print("Q2: {}".format(Q2))
-            show_graph(g)
-            show_graph(subgraph)
 
         done = False
         for i, v in enumerate(Q1):
@@ -248,8 +252,6 @@ def do_case_1_two_connected_subgraphs(g, q, power, verbose=False):
         # These are ordered from u -> v, but
         # now we want to work back from v.
         
-        show_graph(g, {'red': V2})
-
         for i, v in enumerate([nodes_list[1]] + list(reversed(Q2))):
             V2.add(v)
             if find_set_power(V2) == 0:
@@ -261,8 +263,6 @@ def do_case_1_two_connected_subgraphs(g, q, power, verbose=False):
 
         if done:
             continue
-
-        show_graph(g, {'red': V2})
 
         # Still no solution with p = 0.
         V3 = V.difference(V2)
@@ -287,9 +287,9 @@ def do_case_1_two_connected_subgraphs(g, q, power, verbose=False):
             done = True
             continue
                 
-    pdb.set_trace()
     for solution in solutions:
-        show_graph(g, {'red': solution[0], 'yellow': solution[1]})
+        if verbose:
+            show_graph(g, {'red': solution[0], 'yellow': solution[1]})
         validate_solution(g, power, solution[0], solution[1])
 
     return solutions
@@ -297,12 +297,10 @@ def do_case_1_two_connected_subgraphs(g, q, power, verbose=False):
 class InvalidPseudoPathException(Exception):
     pass
 
-def make_pseudopaths(graph, separating_nodes, subgraph):
+def make_pseudopaths(graph, separating_nodes, subgraph, verbose=False):
     numbering = pseudopath.find_st_ordering(graph, *separating_nodes)
     if not pseudopath.verify_pseudo_path(graph, numbering, *separating_nodes):
         print("{}".format(numbering))
-        show_graph_with_pseudo(graph, numbering)
-
         raise InvalidPseudoPathException()
 
     # lists of lists of nodes. 
@@ -339,17 +337,12 @@ def extract_power_k_connected(verbose=False):
 
 def main(file_name, q, power=None, verbose=False):
     g = ig_to_nx(ig.Graph.Read_GML(file_name))
-    if verbose:
-        show_graph(g)
     if not power:
         power = assign_power(g)
     do_case_1_two_connected_subgraphs(g, q, power, verbose=verbose)
     return
 
-
-
 def test_1():
-    pdb.set_trace()
     main("data/power_2_connected_subset_0016_75.gml", 
          4, 
          power=[1, 1, -1, -1, 1, 1, -1, 1, -1, 1, 1, 1, -1, -1, -1, -1],
@@ -357,11 +350,20 @@ def test_1():
     )
 
 if __name__=='__main__':
-    if len(sys.argv) > 1:
-        file_name = sys.argv[1]
-        verbose = len(sys.argv) > 2
-        main(file_name, 4, power=None, verbose=verbose)
-    else:
-        test_1()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f',
+                        help='Graph GML file to process',
+                        default=None)
+    parser.add_argument('-v',
+                        action='store_true',
+                        help='Verbose mode',
+                        default=False)
+    parser.add_argument('-q',
+                        type=int,
+                        help='Q constant to determine how large of subcomponents we should accept. Largest component can be (Q-1)/Q * |V|',
+                        default=4)
+    args = parser.parse_args()
+
+    main(args.f, args.q, power=None, verbose=args.v)
 
     
