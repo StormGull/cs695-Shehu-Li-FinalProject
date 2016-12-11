@@ -142,6 +142,8 @@ int main(int argc, char** argv) {
                     solution_node.put("pair_indices.p2", j);
                     solution_node.put("pair_points.p1", point_to_string(points[i]));
                     solution_node.put("pair_points.p2", point_to_string(points[j]));
+		    ord_type d = wykobi::distance(points[i], points[j]);
+                    solution_node.put("pair_distance", d);
                     solution_node.put("circle.center", point_to_string(mid_point));
                     solution_node.put("circle.radius", radius);
                     solution_node.put("intersection", point_to_string(intersection));
