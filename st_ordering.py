@@ -21,7 +21,7 @@ def show_graph(g, color_nodes=None, **kw):
     )
     plt.show()
     
-def show_graph_with_pseudo(g, numbering, labels=None):
+def show_graph_with_ordering(g, numbering, labels=None):
     if not labels:
         l = dict([(n, "{} ({})".format(n, numbering[n])) for n in g.nodes()])
     else:
@@ -39,8 +39,6 @@ def verify_st_ordering(g, numbering, source, target):
                 found_a_successor = True
             elif numbering[neighbor] < numbering[node]:
                 found_a_predecessor = True
-            else:
-                raise DupliciateNodeAssignmentException()
         if not node == source and not found_a_predecessor:
             print("Node {} has no valid predecessor".format(node))
             correct = False
@@ -252,7 +250,7 @@ def test_bandes():
     ordering = find_st_ordering(g, 0, 1)
     verify_st_ordering(g, ordering, 0, 1)
     print(paper_ordering(ordering))
-    show_graph_with_pseudo(g, ordering, labels=list('stghfbcaed'))
+    show_graph_with_ordering(g, ordering, labels=list('stghfbcaed'))
     return
 
 if __name__ == '__main__':

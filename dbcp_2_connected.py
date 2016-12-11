@@ -5,6 +5,7 @@ import display_graph as dg
 import functools
 import igraph as ig
 import itertools
+import json
 import matplotlib.pyplot as plt
 import networkx as nx
 import os
@@ -12,8 +13,18 @@ import pdb
 import st_ordering
 import random
 import sys
+import time
 
-def show_graph(g, color_nodes=None, **kw):
+class SubgraphTooBigException(Exception):
+    pass
+
+class GraphNot2ConnectedException(Exception):
+    pass
+
+class InvalidPseudoPathException(Exception):
+    pass
+
+def show_graph(g, color_nodes=None, file_name=None, **kw):
     default_color = 'white'
     node_color = defaultdict(lambda: default_color)
 
@@ -26,9 +37,13 @@ def show_graph(g, color_nodes=None, **kw):
             node_color=[node_color[id] for id in g.nodes()],
             **kw,
     )
-    plt.show()
+    if file_name:
+        plt.savefig(file_name)
+    else:
+        plt.show()
+    plt.clf()
     
-def show_graph_with_pseudo(g, numbering):
+def show_graph_with_ordering(g, numbering):
     labels = dict([(n, "{} ({})".format(n, numbering[n])) for n in g.nodes()])
     show_graph(g, labels=labels, node_size=700)
 
@@ -55,7 +70,6 @@ def remove_degree_x_vertices(g, x, verbose=False):
     """Return a graph with all vertices of degree <= x. Since removing
     nodes will likely reduce the degree of other nodes, we have to do
     this iteratively until no nodes of degree <= k remain.
-
     """
 
     work_graph = nx.Graph(g)
@@ -70,11 +84,6 @@ def remove_degree_x_vertices(g, x, verbose=False):
             print("Iteration {0}. length deg_dict = {1}".format(iteration, len(deg_dict)))
     return work_graph
 
-class SubgraphTooBigException(Exception):
-    pass
-
-class GraphNot2ConnectedException(Exception):
-    pass
 
 def find_two_connected_subgraphs(g, verbose=False):
     """Find the largest 2-connected subgraph of the graph passed in."""
@@ -130,7 +139,6 @@ def find_case_1_two_connected_subgraphs(g, q, verbose=False):
                     min_size = min(min_size, len(component))
                     raise SubgraphTooBigException()
         except SubgraphTooBigException:
-#            if verbose:
             print("For nodes {0} found a subgraph > (q-1)/q*size = {1}".format(nodes, max_subgraph_size))
             continue
         found_one=True
@@ -165,8 +173,9 @@ def validate_solution(g, power, V1, V2):
     p1 = abs(set_power(power, V1))
     p2 = abs(set_power(power, V2))
     size_ratio = max([len(V1)/len(V2), len(V2)/len(V1)])
+    power_balance = max([p1, p2])
 
-    print("Power balance: {}. Size ratio: {}".format(max([p1, p2]), size_ratio))
+    print("Power balance: {}. Size ratio: {}".format(power_balance, size_ratio))
 
     if not V1.intersection(V2):
         print("V1 and V2 do not intersect")
@@ -178,19 +187,21 @@ def validate_solution(g, power, V1, V2):
     else:
         print("ERROR: V1 and V2 do not contain all nodes")
     
-    v1_subgraph = g.subgraph(V1)
+    v1_subgraph = nx.Graph(g.subgraph(V1))
     if len(list(nx.connected_components(v1_subgraph)))==1:
         print("Subgraph induced by V1 is connected.")
     else:
         print("ERROR: Subgraph induced by V1 is not connected.")
         
-    v2_subgraph = g.subgraph(V2)
+    v2_subgraph = nx.Graph(g.subgraph(V2))
     if len(list(nx.connected_components(v2_subgraph)))==1:
         print("Subgraph induced by V2 is connected.")
     else:
         print("ERROR: Subgraph induced by V2 is not connected.")
         
     print("")
+
+    return {'power_balance': power_balance, 'size_ratio': size_ratio, 'subgraphs': [v1_subgraph, v2_subgraph], 'partitions': [list(V1), list(V2)]}
 
 def do_case_1_two_connected_subgraphs(g, q, power, verbose=False):
     q *= 1.0 # make float
@@ -286,16 +297,12 @@ def do_case_1_two_connected_subgraphs(g, q, power, verbose=False):
             solutions.append(V1, V.difference(V1))
             done = True
             continue
-                
+
+    reports = []
     for solution in solutions:
-        if verbose:
-            show_graph(g, {'red': solution[0], 'yellow': solution[1]})
-        validate_solution(g, power, solution[0], solution[1])
+        reports.append(validate_solution(g, power, solution[0], solution[1]))
 
-    return solutions
-
-class InvalidPseudoPathException(Exception):
-    pass
+    return reports
 
 def make_pseudopaths(graph, separating_nodes, subgraph, verbose=False):
     numbering = st_ordering.find_st_ordering(graph, *separating_nodes)
@@ -335,11 +342,58 @@ def extract_power_k_connected(verbose=False):
                 print("Writing {}".format(file_name))
                 nx_to_ig(subgraph).write_gml(file_name)
 
-def main(file_name, q, power=None, verbose=False):
+def ensure_dir(dir_name):
+    if os.path.exists(dir_name):
+        if not os.path.isdir(dir_name):
+            raise Exception(dir_name + " exists but is not a directory.")
+        return
+    os.makedirs(dir_name)
+
+def save_report(graph_file_name, g, q, reports, power, write, save_images):
+    image_file_names = []
+    ensure_dir('images')
+    ensure_dir('reports')
+        
+    file_name_base = time.strftime("algo_2-conn_case_1_{}_%Y-%m-%d_%H-%M-%S".format(graph_file_name.replace('data/','').replace('.gml', '')))
+
+    if save_images:
+        for i, report in enumerate(reports):
+            names = {}
+            for config in (('combined', g), ('partition_1', report['subgraphs'][0]), ('partition_2', report['subgraphs'][1])):
+                image_file_name = "images/{}_{}_{}.png".format(file_name_base, i, config[0])
+                show_graph(config[1], 
+                           color_nodes={'red': report['partitions'][0], 'yellow': report['partitions'][1]},
+                           file_name=image_file_name)
+                names[config[0]] =  image_file_name
+            image_file_names.append(names)
+
+    if write:
+        report_file_name = "reports/{}.json".format(file_name_base)
+        print("Writing {0}".format(report_file_name))
+        report_dict = {
+            'graph_file': graph_file_name,
+            'size_V': len(g.nodes()),
+            'size_E': len(g.edges()),
+            'Q': q,
+            'power': power,
+            'solutions':[],
+        }
+        report_keys = "power_balance size_ratio partitions".split()
+        for report in reports:
+            report_dict['solutions'].append({k: report[k] for k in report_keys})
+
+        if image_file_names:
+            report_dict['image_file_names'] = image_file_names
+
+        with open(report_file_name, 'w') as report_file:
+            report_file.write(json.dumps(report_dict, indent=2, sort_keys=True))
+
+def main(file_name, q, power=None, verbose=False, write=False, save_images=False):
     g = ig_to_nx(ig.Graph.Read_GML(file_name))
     if not power:
         power = assign_power(g)
-    do_case_1_two_connected_subgraphs(g, q, power, verbose=verbose)
+    reports = do_case_1_two_connected_subgraphs(g, q, power, verbose=verbose)
+    save_report(file_name, g, q, reports, power, write, save_images)
     return
 
 def test_1():
@@ -352,18 +406,26 @@ def test_1():
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-f',
-                        help='Graph GML file to process',
+                        help='Graph GML file to process.',
                         default=None)
     parser.add_argument('-v',
                         action='store_true',
-                        help='Verbose mode',
+                        help='Verbose mode.',
                         default=False)
     parser.add_argument('-q',
                         type=int,
-                        help='Q constant to determine how large of subcomponents we should accept. Largest component can be (Q-1)/Q * |V|',
+                        help='Q constant to determine how large the subcomponents can be after finding a separating pair. Largest component can be (Q-1)/Q * |V|.',
                         default=4)
+    parser.add_argument('-w',
+                        action='store_true',
+                        help='Write results to disk.',
+                        default=False)
+    parser.add_argument('-i',
+                        action='store_true',
+                        help='Save images of solutions to disk.',
+                        default=False,)
     args = parser.parse_args()
 
-    main(args.f, args.q, power=None, verbose=args.v)
+    main(args.f, args.q, power=None, verbose=args.v, write=args.w, save_images=args.i)
 
     
