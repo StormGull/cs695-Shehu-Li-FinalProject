@@ -6,7 +6,7 @@ import itertools
 import numpy as np
 
 comments_re = re.compile(r'#.*')
-default_fixed_pos = [(0,0), (1,0), (0.5,1)]
+default_fixed_pos = [(0,0), (1,0), (0,1)]
 U_INDEX = 0
 V_INDEX = 1
 W_INDEX = 2
@@ -22,78 +22,102 @@ def find_x_embedding_triconnected(g, fixed_vertices=None):
     if fixed_vertices is None:
         edge_list = g.get_edgelist()
         nxg = nx.Graph(edge_list)
-        full_cycle_list = list(nx.cycle_basis(nxg))
-        tri_cycle_list = [fixed_vertices for fixed_vertices in full_cycle_list if len(fixed_vertices) == 3]
+        # Worst-case timing: O(V^3)
+        base_cycle_list = list(nx.cycle_basis(nxg))
+        print("Cycle basis: ", base_cycle_list)
+        tri_cycle_list = [fixed_vertices for fixed_vertices in base_cycle_list if len(fixed_vertices) == 3]
         # For testing ------------------
-        #tri_cycle_list = []
-        #full_cycle_list = [[0,1,2]]
-        #-------------------------------
+        tri_cycle_list = [] #Uncomment this to go back to using triangles (don't have an example without triangles yet)
+        #-------------------------------       
+        # If there are triangles
         if tri_cycle_list:
-            fixed_vertex_details = []
-            for fixed_vertices in tri_cycle_list:
-                for comb in itertools.permutations(fixed_vertices,3):
-                    fixed_vertex_details.append(comb)
-            triangle_exists = True
+            layout, best_cycle = find_x_embedding_triangle(g, tri_cycle_list)
         else:
-            # TODO: Will update to find non-separating cycle
-            # This might be just one cycle
-            non_separating_cycles = full_cycle_list
-            triangle_exists = False
-            
-            fixed_vertex_details = get_details_for_no_triangle(g, non_separating_cycles[0])
-            for i in range(1, len(full_cycle_list)):
-                fixed_vertex_details.extend(get_details_for_no_triangle(g, non_separating_cycles[i]))
-        
-        # Get positions and plot the graph with the points that are farthest
-        # from each other
-        max_min_dist = 0
-        best_cycle = None
-        for i in range(len(fixed_vertex_details)):            
-            if triangle_exists:
-                fixed_vertices = fixed_vertex_details[i]
-                print("Fixed vertices: ", fixed_vertices)
-                positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos)
-            else:
-                fixed_vertices = fixed_vertex_details[i][0]
-                # Fixed for now, will improve upon once non-separating cycles work
-                V1 = fixed_vertex_details[i][1]
-                V2 = fixed_vertex_details[i][2]
-                print("Fixed vertices: ", fixed_vertices)
-                
-                positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos, V1, V2, 1)
-                
-                # Note, there is a max gravity mentioned in the paper, but it's huge and tends to just pull everything
-                # straight to one corner
-                if not points_are_in_area(positions, fixed_vertices, V1, V2):
-                    gravity = 1
-                    attempts = 0
-                    while not points_are_in_area(positions, fixed_vertices, V1, V2) and attempts < 30:
-                        gravity += 0.5
-                        positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos, V1, V2, gravity)
-                        attempts += 1
-                    print("Attempts: ", attempts)
-                    
-            min_dist = get_min_dist_between_v(positions)
-            if (min_dist > max_min_dist):
-                max_min_dist = min_dist
-                max_min_dist_pos = positions
-                best_cycle = fixed_vertices
-            print("Minimum distance between points: {0}\n".format(min_dist))
-            
-        print("Maximum min distance between points: {0} (fixed_vertices {1})".format(max_min_dist, best_cycle))
-        # Flip so the y orientation is correct (with 0,0 at the lower left)
-        print(list(max_min_dist_pos))
-            
-        layout = max_min_dist_pos
-                   
+            non_separating_cycles = get_non_separating_cycles(g)
+            # For testing --------------------------
+            non_separating_cycles = [cycle for cycle in non_separating_cycles if len(cycle) > 3]
+            #non_separating_cycles = [[0,1,2]]
+            #non_separating_cycles = [[2, 14, 3, 6, 7]]
+            #---------------------------------------
+            layout, best_cycle = find_x_embedding_no_triangle(g, non_separating_cycles)
     else:
-        print("Fixed positions: {0}".format(fixed_vertices))
-        layout = get_rubber_band_positions(g, fixed_vertices)
-        best_cycle = fixed_vertices
-        # Flip so the y orientation is correct (with 0,0 at the lower left)
-        print("Minimum distance between points: {0}".format(get_min_dist_between_v(positions)))
+        layout, best_cycle = find_x_embedding_fixed(g, fixed_vertices)
         
     return layout, best_cycle
+
+def find_x_embedding_fixed(g, fixed_vertices=None):
+    print("Fixed positions: {0}".format(fixed_vertices))
+    positions = get_rubber_band_positions(g, fixed_vertices)
+    print("Minimum distance between points: {0}".format(get_min_dist_between_v(positions)))
+    
+    return positions, fixed_vertices
+
+def find_x_embedding_triangle(g, tri_cycle_list):
+    all_cycle_variations = []
+    for fixed_vertices in tri_cycle_list:
+        for comb in itertools.permutations(fixed_vertices,3):
+            all_cycle_variations.append(comb)
+    
+    max_min_dist = 0
+    best_cycle = None
+    for fixed_vertices in all_cycle_variations:
+        print("Fixed vertices: ", fixed_vertices)
+        positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos)
+        
+        min_dist = get_min_dist_between_v(positions)
+        if min_dist > max_min_dist:
+            max_min_dist = min_dist
+            max_min_dist_pos = positions
+            best_cycle = fixed_vertices
+        
+        print("Minimum distance between points: {0}\n".format(min_dist))
+    
+    print("Maximum min distance between points: {0} (fixed_vertices {1})".format(max_min_dist, best_cycle))
+    print(list(max_min_dist_pos))
+        
+    return max_min_dist_pos, best_cycle
+
+def find_x_embedding_no_triangle(g, non_separating_cycles):
+    fixed_vertex_details = get_details_for_no_triangle(g, non_separating_cycles[0])
+    for i in range(1, len(non_separating_cycles)):
+        fixed_vertex_details.extend(get_details_for_no_triangle(g, non_separating_cycles[i]))
+    
+    max_min_dist = 0
+    best_cycle = None
+    max_attempts = 100
+    for i in range(len(fixed_vertex_details)):
+        fixed_vertices = fixed_vertex_details[i][0]
+        # Fixed for now, will improve upon once non-separating cycles work
+        V1 = fixed_vertex_details[i][1]
+        V2 = fixed_vertex_details[i][2]
+        print("Fixed vertices: ", fixed_vertices)
+        print("V1: ", V1)
+        print("V2: ", V2)
+        
+        gravity = 1
+        attempts = 0
+        gravity_delta = 1
+        positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos, V1, V2, gravity)
+        
+        while not points_are_in_area(positions, fixed_vertices, V1, V2) and attempts < max_attempts:
+            positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos, V1, V2, gravity)
+            gravity += gravity_delta
+            attempts += 1
+        
+        print("Attempts: ", attempts)
+            
+        min_dist = get_min_dist_between_v(positions)
+        if min_dist > max_min_dist:
+            max_min_dist = min_dist
+            max_min_dist_pos = positions
+            best_cycle = fixed_vertices
+        print("Minimum distance between points: {0}\n".format(min_dist))
+            
+    
+    print("Maximum min distance between points: {0} (fixed_vertices {1})".format(max_min_dist, best_cycle))
+    print(list(max_min_dist_pos))
+            
+    return max_min_dist_pos, best_cycle
     
 def plot_x_embedding(g, positions, filename=None):
     # Set visual style for graph
@@ -173,6 +197,10 @@ def get_graph_matrices(g, fixed_vertices, fixed_pos_map, V1=[], V2=[], gravity=1
 # Current fixed vertex order: u, v, w
 def get_rubber_band_positions(g, fixed_vertices, fixed_pos=None, V1=[], V2=[], gravity=1):
     
+    if not len(fixed_pos) == len(fixed_vertices):
+        print("ERROR: The length of the fixed positions must be equal to the length of the fixed vertices")
+        print("Using automated positions")
+        fixed_pos = None
     if (fixed_pos == None):
         layout = list(g.layout_auto())
         fixed_pos = []
@@ -197,13 +225,15 @@ def get_rubber_band_positions(g, fixed_vertices, fixed_pos=None, V1=[], V2=[], g
 # Alternately, we could name the edges, then induce the subgraph
 # and select the edges from the original graph
 def get_induced_subgraph_edges(g, vertices):
-    subgraph_edges = []
-    for e in g.es:
-        v1, v2 = e.tuple
-        if v1 in vertices and v2 in vertices:
-            subgraph_edges.append(e.tuple)
-    return subgraph_edges
-        
+    return [e.tuple for e in g.es if e.target in vertices and e.source in vertices]
+    
+    #subgraph_edges = []
+    #for e in g.es:
+    #    v1, v2 = e.tuple
+    #    if v1 in vertices and v2 in vertices:
+    #        subgraph_edges.append(e.tuple)
+    #return subgraph_edges
+            
 def get_dist(pos1, pos2):
     x1, y1 = pos1
     x2, y2 = pos2    
@@ -226,36 +256,47 @@ def get_details_for_no_triangle(g, cycle):
     vertices = g.vs.indices;
     
     details = []
-    if cycle_len <= (num_vertices / 2):
+    # If the cycle is less than half the length of the graph, then we
+    # can pick any consecutive u,v,w. This finds all possible
+    # u, v, w simply by starting at each index for u and counting
+    # forward from there. It also gets them in reverse.
+    # V2 is just every vertex in the cycle except for W, and V1
+    # is everything else
+    # Note: The order looks weird because I always use the vertices in the order
+    # u, v, w, but they need to be in consecutive order u, w, v
+    if cycle_len <= (num_vertices / 2) + 1:
         for i in range(cycle_len):
-            uvw = [cycle[i], cycle[(i+1) % cycle_len], cycle[(i+2) % cycle_len]]
+            uvw = [cycle[i], cycle[(i+2) % cycle_len], cycle[(i+1) % cycle_len]]
             V2 = [v for v in cycle if not v == uvw[W_INDEX]]
             V1 = [v for v in vertices if not v in V2]
             details.append([uvw, V1, V2])
             # Reverse the list
-            uvw = [cycle[(i+2) % cycle_len], cycle[(i+1) % cycle_len], cycle[i]]
-            V2 = [v for v in cycle if not v == uvw[W_INDEX]]
-            V1 = [v for v in vertices if not v in V2]
-            details.append([uvw, V1, V2])
+            # Note: Could do this, but the difference between the two is relatively small
+            #uvw = [cycle[(i+2) % cycle_len], cycle[i], cycle[(i+1) % cycle_len]]
+            #V2 = [v for v in cycle if not v == uvw[W_INDEX]]
+            #V1 = [v for v in vertices if not v in V2]
+            #details.append([uvw, V1, V2])
+    # Here, w is a vertex not in the cycle (C) that has two neighbors in C.
+    # U and V are those neighbors. 
     else:
-        for v in vertices:
-            # Had this in an if statement before: Which is neater, continue
-            # or a large portion of this in an if statement?
-            if v in cycle:
+        # Find w
+        for vertex in vertices:
+            # We skip the vertices in the cycle since none of them can be w
+            if vertex in cycle:
                 continue
             uvw = []
-            nbh = g.neighbors(v)
+            nbh = g.neighbors(vertex)
+            # Get the neighbors of the selected vertex that are in the cycle
             nb_in_cycle = list(set(cycle) & set(nbh))
             nb_size = len(nb_in_cycle)
-            # If the vertex has fewer than two neighbors, it can't be w
-            # Same question as above about continue
+            # We are only interested in vertices with two or more neighbors in the cycle
             if nb_size < 2:
                 continue
-            w = v
-            # We go through all the neighbors and pick possible v and u
-            for i in range(nb_size):
-                u = nb_in_cycle[i]
-                v = nb_in_cycle[(i+1) % nb_size]
+            w = vertex
+            # Find all the possible v,u combinations and get V1 and V2
+            # V2 is the path between u and v (must be < |V|/2 - 1). V1 is everything else
+            vu = itertools.permutations(nb_in_cycle, 2)
+            for v,u in vu:
                 u_index = cycle.index(u)
                 v_index = cycle.index(v)
                 path1 = [u]
@@ -280,7 +321,6 @@ def get_details_for_no_triangle(g, cycle):
                 if (nb_size > 2):
                     details.append([[v, u, w], V1, V2])
     
-    print("Details:", details)
     return details
 
 # Brute force method - tried to find another method but haven't gotten it working yet
@@ -296,6 +336,58 @@ def get_min_dist_between_v(v_positions):
             min_dist = dist
             
     return min_dist
+
+def remove_duplicate_cycles(cycle_list):
+    new_cycle_list = []
+    for cycle in cycle_list:
+        cycle_end = cycle[1:]
+        cycle_end.reverse()
+        reverse_cycle = [cycle[0]] + cycle_end
+        if (not reverse_cycle in new_cycle_list):
+            new_cycle_list.append(cycle)
+    
+    return new_cycle_list
+
+def all_vertices_neighbor_graph(g, cycle):
+    all_vertices_connect = True
+    non_cycle_vertices = [i for i in g.vs.indices if not i in cycle]
+    for v in cycle:
+        nbh = g.neighbors(v)
+        nb_in_graph = [nb for nb in nbh if nb in non_cycle_vertices]
+        if not nb_in_graph:
+            all_vertices_connect = False
+            break
+    
+    return all_vertices_connect
+
+def cycle_has_chords(g, cycle):
+    edges_in_cycle = [e for e in g.es if e.target in cycle and e.source in cycle]
+    if not len(edges_in_cycle) == len(cycle):
+        return True
+    else:
+        return False
+    
+def get_non_separating_cycles(g):
+    g_directed = g.copy()
+    g_directed.to_directed(mutual=True)
+    edge_list = g_directed.get_edgelist()
+    nxg = nx.DiGraph(edge_list)
+    print("Getting simple cycles") #This is here because it was taking a while
+    simple_cycles = list(nx.simple_cycles(nxg))
+    print("Found simple cycles")
+    cycle_list = [cycle for cycle in simple_cycles if len(cycle) > 2 and len(cycle) < len(g.vs)]
+    cycle_list = remove_duplicate_cycles(cycle_list)
+    
+    non_separating_cycles = []
+    for cycle in cycle_list:
+        if all_vertices_neighbor_graph(g, cycle) and not cycle_has_chords(g, cycle):
+            g_copy = g.copy()
+            g_copy.delete_vertices(cycle)
+            if g_copy.is_connected():
+                non_separating_cycles.append(cycle)
+    print("Non-separating cycles:", non_separating_cycles)
+    
+    return non_separating_cycles
 
 def load_graph(data_file_name, directed=False):
     if (data_file_name.endswith(".gml")):
@@ -321,8 +413,8 @@ def load_graph(data_file_name, directed=False):
         return g
 
 if __name__=="__main__":
-    example_to_use = 1
+    example_to_use = 2
     filenames = ["triangle_graph.txt", "power_3_connected_subset_0047_18.gml", "GMLFile.gml",
-                 "GMLFile2.gml", "GMLFile3.gml", "GMLFile4.gml"]
+                 "GMLFile2.gml", "GMLFile3.gml", "GMLFile7.gml"]
     
     main(filenames[example_to_use], plot_best=True)
