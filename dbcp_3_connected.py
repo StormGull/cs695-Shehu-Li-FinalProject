@@ -153,7 +153,9 @@ def main(filename):
         for x, y in layout:
             vertex_file.write("{0}\n{1}\n".format(x, y))
 
-    os.system('make-st-numbering {0} {1}'.format(vertex_file_name, st_numbering_file_name))
+    exit_code = os.system('make-st-numbering {0} {1}'.format(vertex_file_name, st_numbering_file_name))
+    if exit_code:
+        raise Exception("Running make-st-numbering failed:{}".format(exit_code))
 
     st_numbering = None
     with open(st_numbering_file_name) as st_numbering_file:
