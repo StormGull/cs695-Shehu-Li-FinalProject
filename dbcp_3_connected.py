@@ -143,8 +143,9 @@ def main(filename):
     
     # Scale graph so that the minimum distance between the points will not be too close
     min_acceptable_dist = 0.00001
-    scale_factor = min_acceptable_dist / min_dist
-    layout = scale_positions(layout, scale_factor)
+    if min_dist < min_acceptable_dist:
+        scale_factor = min_acceptable_dist / min_dist
+        layout = scale_positions(layout, scale_factor)
 
     vertex_file_name       = os.path.join("work", filename + '.' + 'positions')
     st_numbering_file_name = os.path.join("work", filename + '.' + 'st_numbering')
