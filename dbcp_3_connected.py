@@ -101,18 +101,22 @@ def draw_st_numbering(graph, solution, points, power=None, partitions=None, pair
     for e in graph.es:
         p1 = e.source
         p2 = e.target
-              
+        ls='-'
+
         if (partitions and
             ((p1 in partitions[0] and p2 in partitions[1]) or
              (p1 in partitions[1] and p2 in partitions[0]))):
-            continue
-        plt.gca().add_line(render_line([points[p1], points[p2]], lw=0.5, color='red'))
+            ls = ':'
+        plt.gca().add_line(render_line([points[p1], points[p2]], lw=0.5, color='red', ls=ls))
 
     plt.gca().add_line(render_line(solution["tangent"], color='blue', ls='--'))
 
     for v, p in enumerate(solution["st_numbering"]):
-        color = 'black'
-        plt.gca().add_patch(plt.Circle(tuple(p), radius=0.01, fc=color))
+        if v in partitions[0]:
+            color = 'white'
+        else:
+            color = 'black'
+        plt.gca().add_patch(plt.Circle(tuple(p), radius=0.02, fc=color))
 
     plt.axis('scaled')
     plt.show()
@@ -153,6 +157,7 @@ def main(filename):
     
     # Scale graph so that the minimum distance between the points will not be too close
     min_acceptable_dist = 0.00001
+    print("min_dist: {}".format(min_dist))
     if min_dist < min_acceptable_dist:
         scale_factor = min_acceptable_dist / min_dist
         layout = scale_positions(layout, scale_factor)
