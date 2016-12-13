@@ -12,14 +12,6 @@ U_INDEX = 0
 V_INDEX = 1
 W_INDEX = 2
 
-def main(filename, fixed_vertices=None, plot_best=False, shortcut=False):
-    g = load_graph("data/" + filename, False)
-    #g = ig.Graph.Full_Bipartite(6, 6)
-    positions,_,min_dist = find_x_embedding_triconnected(g, shortcut=shortcut)
-    
-    if plot_best:
-        plot_x_embedding(g, positions)
-
 def find_x_embedding_triconnected(g, fixed_vertices=None, shortcut=False):
     if fixed_vertices is None:
         edge_list = g.get_edgelist()
@@ -27,18 +19,11 @@ def find_x_embedding_triconnected(g, fixed_vertices=None, shortcut=False):
         # Worst-case timing: O(V^3)
         base_cycle_list = list(nx.cycle_basis(nxg))
         tri_cycle_list = [fixed_vertices for fixed_vertices in base_cycle_list if len(fixed_vertices) == 3]
-        # For testing ------------------
-        #tri_cycle_list = [] #Comment this to go back to using triangles (don't have an example without triangles yet)
-        #-------------------------------
         # If there are triangles
         if tri_cycle_list:
             layout, best_cycle, min_dist = find_x_embedding_triangle(g, tri_cycle_list, shortcut)
         else:
             non_separating_cycle = get_non_separating_cycle(g, base_cycle_list)
-            # For testing --------------------------
-            #non_separating_cycles = [[0,1,2]]
-            #non_separating_cycles = [[2, 14, 3, 6, 7]]
-            #---------------------------------------
             layout, best_cycle, min_dist = find_x_embedding_no_triangle(g, non_separating_cycle, shortcut)
     else:
         layout, best_cycle, min_dist = find_x_embedding_fixed(g, fixed_vertices)
@@ -108,7 +93,7 @@ def find_x_embedding_no_triangle(g, non_separating_cycles, shortcut=False):
         gravity_delta = 1
         positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos, V1, V2, gravity)
         
-        while not points_are_in_area(positions, fixed_vertices, V1, V2) and attempts:
+        while not points_are_in_area(positions, fixed_vertices, V1, V2):
             positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos, V1, V2, gravity)
             gravity += gravity_delta
             attempts += 1
@@ -434,6 +419,14 @@ def load_graph(data_file_name, directed=False):
         g.add_vertices(sorted(list(V)))
         g.add_edges(list(E))
         return g
+    
+def main(filename, fixed_vertices=None, plot_best=False, shortcut=False):
+    g = load_graph("data/" + filename, False)
+    #g = ig.Graph.Full_Bipartite(6, 6)
+    positions,_,_ = find_x_embedding_triconnected(g, shortcut=shortcut)
+    
+    if plot_best:
+        plot_x_embedding(g, positions)
 
 if __name__=="__main__":
     example_to_use = 6
