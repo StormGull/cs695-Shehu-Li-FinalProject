@@ -85,18 +85,28 @@ def evaluate_split(V1, V2, power):
     size_ratio = max([len(V1)/len(V2), len(V2)/len(V1)])
     return {'power': max(p1, p2), 'size': size_ratio}
 
-def draw_st_numbering(graph, solution, points, power=None):
+def draw_st_numbering(graph, solution, points, power=None, partitions=None, pair=None):
 
     plt.gca().add_patch(plt.Circle(tuple(solution['circle']['center']), radius=solution['circle']['radius'], fill=False))
 
     for v, p in enumerate(points):
+        radius = 0.01
+        if pair and p in pair:
+            radius = .02
         color = 'r'
         if power and power[v] < 0:
             color = 'blue'
-        plt.gca().add_patch(plt.Circle(tuple(p), radius=0.001, fc=color))
+        plt.gca().add_patch(plt.Circle(tuple(p), radius=radius, fc=color))
 
     for e in graph.es:
-        plt.gca().add_line(render_line([points[e.source], points[e.target]], lw=0.5, color='red'))
+        p1 = e.source
+        p2 = e.target
+              
+        if (partitions and
+            ((p1 in partitions[0] and p2 in partitions[1]) or
+             (p1 in partitions[1] and p2 in partitions[0]))):
+            continue
+        plt.gca().add_line(render_line([points[p1], points[p2]], lw=0.5, color='red'))
 
     plt.gca().add_line(render_line(solution["tangent"], color='blue', ls='--'))
 
@@ -179,36 +189,60 @@ def main(filename):
 
         for j in range(2):
             # Check that this split produces two connected subgraphs (according to the theory it should.)
-            if not check_connectedness(g, splits[0]['V1'], splits[0]['V2']):
-                print("ERROR: subgraphs not connected")
-            splits[j]['quality'] = evaluate_split(splits[j]['V1'],
-                                                  splits[j]['V2'],
-                                                  power)
-            splits[j]['solution'] = solution
-            results.append(splits[j])
+            if not check_connectedness(g, splits[j]['V1'], splits[j]['V2']):
+                print("ERROR: subgraphs not connected with split points {}".format(solution['pair_points']))
+                draw_st_numbering(g, solution,
+                                  st_numbering["input_points"], 
+                                  power=power, 
+                                  partitions=[splits[j]['V1'],
+                                              splits[j]['V2']],
+                                  pair=[solution['pair_points']['p1'],
+                                        solution['pair_points']['p2']],
+                )
+            else:
+                splits[j]['quality'] = evaluate_split(splits[j]['V1'],
+                                                      splits[j]['V2'],
+                                                      power)
+                splits[j]['solution'] = solution
+                results.append(splits[j])
         
     best_power_value  = min([x['quality']['power'] for x in results])
     best_power_result = min([x for x in results if x['quality']['power'] == best_power_value], 
                             key=lambda y:y['quality']['size'])
 
     print("Best power result. Power = {power}. Size = {size}".format(**(best_power_result['quality']))) 
-    draw_st_numbering(g, best_power_result['solution'], st_numbering["input_points"])
+    draw_st_numbering(g, best_power_result['solution'], 
+                      st_numbering["input_points"], 
+                      power=power, 
+                      partitions=[best_power_result['V1'],
+                                  best_power_result['V2']],
+                      pair=[best_power_result['solution']['pair_points']['p1'],
+                            best_power_result['solution']['pair_points']['p2'],]
+    )
 
     best_size_value  = min([x['quality']['size'] for x in results])
     best_size_result = min([x for x in results if x['quality']['size'] == best_size_value], 
                             key=lambda y:y['quality']['power'])
     print("Best size result. Size = {size}. Power = {power}".format(**(best_size_result['quality']))) 
-    draw_st_numbering(g, best_size_result['solution'], st_numbering["input_points"])
+    draw_st_numbering(g, best_size_result['solution'],                       st_numbering["input_points"], 
+                      power=power, 
+                      partitions=[best_size_result['V1'],
+                                  best_size_result['V2']],
+                      pair=[best_size_result['solution']['pair_points']['p1'],
+                            best_size_result['solution']['pair_points']['p2'],]
+    )
 
     return
 
     
 if __name__=="__main__":
-    example_to_use = 5
+    example_to_use = 6
     filenames = ["triangle_graph.txt", 
                  "GMLFile.gml", 
                  "GMLFile2.gml", 
                  "GMLFile3.gml", 
                  "GMLFile4.gml", 
-                 "power_3_connected_subset_0047_18.gml",]
+                 "power_3_connected_subset_0047_18.gml",
+                 "ring_graph.txt",
+    ]
     main(filenames[example_to_use])
