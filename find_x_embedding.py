@@ -5,6 +5,7 @@ import re
 import itertools
 import numpy as np
 import random
+import argparse
 
 comments_re = re.compile(r'#.*')
 default_fixed_pos = [(0,0), (1,0), (0,1)]
@@ -93,13 +94,11 @@ def find_x_embedding_no_triangle(g, non_separating_cycles, shortcut=False):
         #print("V2: ", V2)
         
         gravity = 1
-        attempts = 0
         # First phase - get to the general area
         positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos, V1, V2, gravity)
         while not points_are_in_area(positions, fixed_vertices, V1, V2):
             gravity *= 2
             positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos, V1, V2, gravity)
-            attempts += 1
         
         # Second Phase - use a semi-binary search to locate the best location,
         # trying to get the lowest node in V1 close to 0.5
@@ -146,12 +145,15 @@ def plot_x_embedding(g, positions, filename=None):
     visual_style={}
     visual_style['bbox']=(1200,1200)
     visual_style['margin']=50
-    visual_style['vertex_label']=g.vs.indices
-    visual_style['vertex_size']=20
+    #visual_style['vertex_label']=g.vs.indices
+    visual_style['vertex_size']=40
     visual_style["vertex_color"]="blue" 
-    visual_style["vertex_label_size"] = 15
-    visual_style["vertex_label_color"] = "white"
+    #visual_style["vertex_label_size"] = 30
+    #visual_style["vertex_label_color"] = "white"
+    visual_style["edge_width"]=10
     
+    # Flip positions because igraph has (0,0) in
+    # the upper left corner
     layout = [ [p[0],-p[1]] for p in positions]
     if filename:
         ig.plot(g, layout=layout, **visual_style).save(filename)
@@ -446,17 +448,33 @@ def load_graph(data_file_name, directed=False):
         g.add_edges(list(E))
         return g
     
-def main(filename, fixed_vertices=None, plot_best=False, shortcut=False):
+def main(filename, fixed_vertices=None, save_plot=False, shortcut=False):
     g = load_graph("data/" + filename, False)
-    #g = ig.Graph.Full_Bipartite(6, 6)
     positions,_,_ = find_x_embedding_triconnected(g, shortcut=shortcut)
     
-    if plot_best:
+    if save_plot:
+        plot_filename = "{0}.png".format(filename.replace('.gml', ''))
+        plot_x_embedding(g, positions, plot_filename)
+    else:
         plot_x_embedding(g, positions)
 
 if __name__=="__main__":
-    example_to_use = 0
-    filenames = ["square_graph.txt", "power_3_connected_subset_0047_18.gml", "32-node-random-triconnected.gml",
-                 "GMLFile2.gml", "GMLFile3.gml", "GMLFile4.gml", "ring_graph.txt"]
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f',
+                        help='Graph file to process.',
+                        default=None)
+    parser.add_argument('-v',
+                        action='store_true',
+                        help='Fixed vertices to use. Format: [v1, v2...,vn]',
+                        default=False)
+    parser.add_argument('-p',
+                        action='store_true',
+                        help='Save images of plot to disk.',
+                        default=False,)
+    parser.add_argument('-s',
+                        action='store_true',
+                        help='Examine only one X-embedding',
+                        default=False,)
+    args = parser.parse_args()
     
-    main(filenames[example_to_use], plot_best=True, shortcut=False)
+    main(filename=args.f, fixed_vertices=args.v, save_plot=args.p, shortcut=args.s)
