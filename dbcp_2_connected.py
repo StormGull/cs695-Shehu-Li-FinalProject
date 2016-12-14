@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 import argparse
 from   collections import defaultdict, namedtuple, deque
-import display_graph as dg
 import functools
 import igraph as ig
 import itertools
@@ -33,8 +32,11 @@ def show_graph(g, color_nodes=None, file_name=None, **kw):
             for id in ids:
                 node_color[id] = color
     
-    nx.draw(g,with_labels=True,
+    nx.draw(g,with_labels=False,
             node_color=[node_color[id] for id in g.nodes()],
+            node_size = 20,
+            width=0.1,
+            linewidths=0.1,
             **kw,
     )
     if file_name:
@@ -45,7 +47,7 @@ def show_graph(g, color_nodes=None, file_name=None, **kw):
     
 def show_graph_with_ordering(g, numbering):
     labels = dict([(n, "{} ({})".format(n, numbering[n])) for n in g.nodes()])
-    show_graph(g, labels=labels, node_size=700)
+    show_graph(g, labels=labels, node_size=.01)
 
 def assign_power(g):
     # Assign power supply 1, sink -1 randomly (but evenly)
@@ -362,7 +364,11 @@ def save_report(graph_file_name, g, q, reports, power, write, save_images):
             for config in (('combined', g), ('partition_1', report['subgraphs'][0]), ('partition_2', report['subgraphs'][1])):
                 image_file_name = "images/{}_{}_{}.png".format(file_name_base, i, config[0])
                 show_graph(config[1], 
-                           color_nodes={'red': report['partitions'][0], 'yellow': report['partitions'][1]},
+                           color_nodes={'lightblue': [v for v in report['partitions'][0] if power[v] == 1],
+                                        'blue': [v for v in report['partitions'][1] if power[v] == 1],
+                                        'pink': [v for v in report['partitions'][0] if power[v] == -1],
+                                        'red': [v for v in report['partitions'][1] if power[v] == -1],
+                           },
                            file_name=image_file_name)
                 names[config[0]] =  image_file_name
             image_file_names.append(names)

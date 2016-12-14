@@ -1,0 +1,36 @@
+Our project files consist of:
+
+
+
+
+Our programs are mostly written in Python 3.x. If you run it as an executable
+in Linux it will assume your Python is located in /usr/bin/python3. If
+you want to run it with another version of Python in your path (like
+/usr/local/bin/python3) then run "python3 a3.py" (this is all basic,
+but we're just being complete.)
+
+We tested this program on Ubuntu 16.04 with Python version 3.5.2 and
+Windows 10 with Python version 3.4.
+
+The program uses some Python modules that are not installed by default, but are
+available from pip: igraph, networkx, numpy, and llist.
+
+We also wrote a C++ program to do the geometry for the 3-connected
+technique. It relies primarily on the Wykobi library to perform
+geometrical calculations. It also uses the lexical_cast and
+property_tree libraries. The version we used for Linux is 1.58
+(default package version for Ubuntu 16.04;) and for Windows is
+1.68. We also had to hack the Boost property_tree files to get it to
+work properly with numbers.
+
+We've checked in all the Wykobi code (and changed Boost files) in the
+directory wykobi-master. In Linux, you should be able to
+
+cd wykobi-master
+make
+make install
+
+For Windows 10 we built the C++ file in Microsoft Visual Studio.
+
+<insert windows instructions here>
+
