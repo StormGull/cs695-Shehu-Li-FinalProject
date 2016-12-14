@@ -139,6 +139,11 @@ GMLFile5.gml
 GMLFile6.gml
 GMLFile7.gml
 GMLFile.gml
+
+# Hand created
+pentagon_graph.txt
+ring_graph.txt
+square_graph.txt
 pentagon_graph.txt
 
 # Strogatz and Watts data. The 4-digit number after "subset_" is the number of nodes.
@@ -161,4 +166,4 @@ We both worked equally on the assignment.
 - Paul discovered and generated data files with the Strogatz and Watts Western United States Power
   Grid dataset 
 - We both worked on the report and presentation together, focusing primarily on the areas
- that we had implemented.
+ that we had implemented. 
