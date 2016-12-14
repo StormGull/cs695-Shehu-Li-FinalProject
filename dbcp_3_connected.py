@@ -167,7 +167,7 @@ def main(filename, write=False, save_images=False):
     # Scale graph so that the minimum distance between the points will not be too close
     min_acceptable_dist = 0.00001
     print("min_dist: {}".format(min_dist))
-    if min_dist < min_acceptable_dist:
+    if min_dist < min_acceptable_dist and not min_dist == 0:
         scale_factor = min_acceptable_dist / min_dist
         layout = scale_positions(layout, scale_factor)
 

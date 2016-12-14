@@ -13,6 +13,8 @@ V_INDEX = 1
 W_INDEX = 2
 
 def find_x_embedding_triconnected(g, fixed_vertices=None, shortcut=False):
+    print("Finding X-Embedding...")
+    
     if fixed_vertices is None:
         edge_list = g.get_edgelist()
         nxg = nx.Graph(edge_list)
@@ -22,6 +24,7 @@ def find_x_embedding_triconnected(g, fixed_vertices=None, shortcut=False):
         # If there are triangles
         if tri_cycle_list:
             layout, best_cycle, min_dist = find_x_embedding_triangle(g, tri_cycle_list, shortcut)
+        # Otherwise
         else:
             non_separating_cycle = get_non_separating_cycle(g, base_cycle_list)
             layout, best_cycle, min_dist = find_x_embedding_no_triangle(g, non_separating_cycle, shortcut)
@@ -31,14 +34,14 @@ def find_x_embedding_triconnected(g, fixed_vertices=None, shortcut=False):
     return layout, best_cycle, min_dist
 
 def find_x_embedding_fixed(g, fixed_vertices):
-    print("Fixed vertices: {0}".format(fixed_vertices))
     positions = get_rubber_band_positions(g, fixed_vertices)
     min_dist = get_min_dist_between_v(positions)
-    print("Minimum distance between points: {0}".format(min_dist))
+    print("Minimum distance between points: {0} (X={1})".format(min_dist, fixed_vertices))
     
     return positions, fixed_vertices, min_dist
 
 def find_x_embedding_triangle(g, tri_cycle_list, shortcut=False):
+    print("(Triangles found)")
     all_cycle_variations = []
     # If shortcut is selected, just pick a random triangle from the
     # cycle list.
@@ -53,7 +56,7 @@ def find_x_embedding_triangle(g, tri_cycle_list, shortcut=False):
     max_min_dist = -1
     best_cycle = None
     for fixed_vertices in all_cycle_variations:
-        print("Fixed vertices: ", fixed_vertices)
+        #print("Fixed vertices: ", fixed_vertices)
         positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos)
         
         min_dist = get_min_dist_between_v(positions)
@@ -62,13 +65,14 @@ def find_x_embedding_triangle(g, tri_cycle_list, shortcut=False):
             max_min_dist_pos = positions
             best_cycle = fixed_vertices
         
-        print("Minimum distance between points: {0}\n".format(min_dist))
+        #print("Minimum distance between points: {0}\n".format(min_dist))
     
-    print("Maximum min distance between points: {0} (fixed_vertices {1})".format(max_min_dist, best_cycle))
+    print("Maximum min distance between points: {0} (X={1})".format(max_min_dist, best_cycle))
         
     return max_min_dist_pos, best_cycle, max_min_dist
 
 def find_x_embedding_no_triangle(g, non_separating_cycles, shortcut=False):
+    print("(No triangles found)")
     if shortcut:
         rand_cycle_index = int(random.random() * len(non_separating_cycles))
         fixed_vertex_details = get_details_for_no_triangle(g, non_separating_cycles[rand_cycle_index], shortcut)
@@ -84,41 +88,69 @@ def find_x_embedding_no_triangle(g, non_separating_cycles, shortcut=False):
         # Fixed for now, will improve upon once non-separating cycles work
         V1 = fixed_vertex_details[i][1]
         V2 = fixed_vertex_details[i][2]
-        print("Fixed vertices: ", fixed_vertices)
-        print("V1: ", V1)
-        print("V2: ", V2)
+        #print("Fixed vertices: ", fixed_vertices)
+        #print("V1: ", V1)
+        #print("V2: ", V2)
         
         gravity = 1
         attempts = 0
-        gravity_delta = 1
+        # First phase - get to the general area
         positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos, V1, V2, gravity)
-        
         while not points_are_in_area(positions, fixed_vertices, V1, V2):
+            gravity *= 2
             positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos, V1, V2, gravity)
-            gravity += gravity_delta
             attempts += 1
         
-        print("Attempts: ", attempts)
-            
+        # Second Phase - use a semi-binary search to locate the best location,
+        # trying to get the lowest node in V1 close to 0.5
+        min_dist_from_area = 0.01
+        if get_lowest_in_V1(positions, V1) - 0.5 > min_dist_from_area:
+            # Use as the base last gravity that put the vertices outside the desired area
+            base_gravity = gravity / 2
+            multiplier = 1.5
+            mult_delta = 0.25
+            while True:
+                gravity = base_gravity * multiplier
+                positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos, V1, V2, gravity)
+                
+                if points_are_in_area(positions, fixed_vertices, V1, V2):
+                    if get_lowest_in_V1(positions, V1) - 0.5 <= min_dist_from_area:
+                        break
+                    else:
+                        multiplier -= mult_delta
+                else:
+                    multiplier += mult_delta
+                mult_delta /= 2
+                    
         min_dist = get_min_dist_between_v(positions)
         if min_dist > max_min_dist:
             max_min_dist = min_dist
             max_min_dist_pos = positions
             best_cycle = fixed_vertices
-        print("Minimum distance between points: {0}\n".format(min_dist))
+        #print("Minimum distance between points: {0}\n".format(min_dist))
             
     
-    print("Maximum min distance between points: {0} (fixed_vertices {1})".format(max_min_dist, best_cycle))
+    print("Maximum min distance between points: {0} (X={1})".format(max_min_dist, best_cycle))
             
     return max_min_dist_pos, best_cycle, max_min_dist
-    
+
+def get_lowest_in_V1(positions, V1):
+    lowest_loc = 1
+    for vertex in V1:
+        if positions[vertex][1] < lowest_loc:
+            lowest_loc = positions[vertex][1]
+    return lowest_loc
+
 def plot_x_embedding(g, positions, filename=None):
     # Set visual style for graph
     visual_style={}
     visual_style['bbox']=(1200,1200)
     visual_style['margin']=50
     visual_style['vertex_label']=g.vs.indices
-    visual_style['vertex_size']=15
+    visual_style['vertex_size']=20
+    visual_style["vertex_color"]="blue" 
+    visual_style["vertex_label_size"] = 15
+    visual_style["vertex_label_color"] = "white"
     
     layout = [ [p[0],-p[1]] for p in positions]
     if filename:
@@ -240,7 +272,6 @@ def get_details_for_no_triangle(g, cycle, shortcut=False):
     cycle_len = len(cycle)
     num_vertices = len(g.vs)
     vertices = g.vs.indices;
-    
     details = []
     # If the cycle is less than half the length of the graph, then we
     # can pick any consecutive u,v,w. This finds all possible
@@ -277,36 +308,31 @@ def get_details_for_no_triangle(g, cycle, shortcut=False):
             w = vertex
             # Find all the possible v,u combinations and get V1 and V2
             # V2 is the path between u and v (must be < |V|/2 - 1). V1 is everything else
-            vu = itertools.permutations(nb_in_cycle, 2)
+            vu = list(itertools.permutations(nb_in_cycle, 2))
             for v,u in vu:
                 u_index = cycle.index(u)
                 v_index = cycle.index(v)
                 path1 = [u]
                 path2 = [v]
                 # Get the shorter path between u and v (will definitely be less than |V|/2-1)
-                for i in range(1,nb_size):
-                    if (u_index + i) % nb_size == v_index:
+                for i in range(1,cycle_len):
+                    if (u_index + i) % cycle_len == v_index:
                         path1.append(v)
                         V2 = path1
                         break
-                    elif (v_index + i) % nb_size == u_index:
+                    elif (v_index + i) % cycle_len == u_index:
                         path2.append(u)
                         V2 = path2
                         break
-                    path1.append(cycle[(u_index + i) % nb_size])
-                    path2.append(cycle[(v_index + i) % nb_size])
+                    path1.append(cycle[(u_index + i) % cycle_len])
+                    path2.append(cycle[(v_index + i) % cycle_len])
                 V1 = [vertex for vertex in vertices if not vertex in V2]
                 details.append([[u, v, w], V1, V2])
                 if shortcut:
                     break
-                # Reverse u and v and add that as well, unless this
-                # neighborhood is only two vertices, in which case 
-                # it will reverse anyway
-                if (nb_size > 2):
-                    details.append([[v, u, w], V1, V2])
             if shortcut:
                 break
-            
+
     return details
 
 # Brute force method - tried to find another method but haven't gotten it working yet
@@ -390,10 +416,10 @@ def get_non_separating_cycle(g, cycle_basis):
                 break
             count += 1
     
-    if non_separating_cycles:
-        print("Found cycles: ", non_separating_cycles)
-    else:
-        print("Did not find cycle.")
+    #if non_separating_cycles:
+    #    print("Found cycles: ", non_separating_cycles)
+    #else:
+    #    print("Did not find cycle.")
     
     return non_separating_cycles
 
@@ -429,8 +455,8 @@ def main(filename, fixed_vertices=None, plot_best=False, shortcut=False):
         plot_x_embedding(g, positions)
 
 if __name__=="__main__":
-    example_to_use = 6
-    filenames = ["triangle_graph.txt", "power_3_connected_subset_0047_18.gml", "GMLFile.gml",
+    example_to_use = 0
+    filenames = ["square_graph.txt", "power_3_connected_subset_0047_18.gml", "32-node-random-triconnected.gml",
                  "GMLFile2.gml", "GMLFile3.gml", "GMLFile4.gml", "ring_graph.txt"]
     
     main(filenames[example_to_use], plot_best=True, shortcut=False)
