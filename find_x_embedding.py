@@ -57,7 +57,6 @@ def find_x_embedding_triangle(g, tri_cycle_list, shortcut=False):
     max_min_dist = -1
     best_cycle = None
     for fixed_vertices in all_cycle_variations:
-        #print("Fixed vertices: ", fixed_vertices)
         positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos)
         
         min_dist = get_min_dist_between_v(positions)
@@ -65,9 +64,7 @@ def find_x_embedding_triangle(g, tri_cycle_list, shortcut=False):
             max_min_dist = min_dist
             max_min_dist_pos = positions
             best_cycle = fixed_vertices
-        
-        #print("Minimum distance between points: {0}\n".format(min_dist))
-    
+            
     print("Maximum min distance between points: {0} (X={1})".format(max_min_dist, best_cycle))
         
     return max_min_dist_pos, best_cycle, max_min_dist
@@ -89,9 +86,6 @@ def find_x_embedding_no_triangle(g, non_separating_cycles, shortcut=False):
         # Fixed for now, will improve upon once non-separating cycles work
         V1 = fixed_vertex_details[i][1]
         V2 = fixed_vertex_details[i][2]
-        #print("Fixed vertices: ", fixed_vertices)
-        #print("V1: ", V1)
-        #print("V2: ", V2)
         
         gravity = 1
         # First phase - get to the general area
@@ -103,6 +97,8 @@ def find_x_embedding_no_triangle(g, non_separating_cycles, shortcut=False):
         # Second Phase - use a semi-binary search to locate the best location,
         # trying to get the lowest node in V1 close to 0.5
         min_dist_from_area = 0.01
+        max_attempts = 25
+        attempts = 0
         if get_lowest_in_V1(positions, V1) - 0.5 > min_dist_from_area:
             # Use as the base last gravity that put the vertices outside the desired area
             base_gravity = gravity / 2
@@ -113,21 +109,26 @@ def find_x_embedding_no_triangle(g, non_separating_cycles, shortcut=False):
                 positions = get_rubber_band_positions(g, fixed_vertices, default_fixed_pos, V1, V2, gravity)
                 
                 if points_are_in_area(positions, fixed_vertices, V1, V2):
+                    # This prevents an infinite loop if for some reason the lower
+                    # nodes are not in the correct area when the higher nodes get
+                    # close to 0.5
+                    if attempts > max_attempts:
+                        break
                     if get_lowest_in_V1(positions, V1) - 0.5 <= min_dist_from_area:
                         break
                     else:
                         multiplier -= mult_delta
                 else:
                     multiplier += mult_delta
+                
                 mult_delta /= 2
+                attempts += 1
                     
         min_dist = get_min_dist_between_v(positions)
         if min_dist > max_min_dist:
             max_min_dist = min_dist
             max_min_dist_pos = positions
-            best_cycle = fixed_vertices
-        #print("Minimum distance between points: {0}\n".format(min_dist))
-            
+            best_cycle = fixed_vertices          
     
     print("Maximum min distance between points: {0} (X={1})".format(max_min_dist, best_cycle))
             
@@ -145,12 +146,7 @@ def plot_x_embedding(g, positions, filename=None):
     visual_style={}
     visual_style['bbox']=(1200,1200)
     visual_style['margin']=50
-    #visual_style['vertex_label']=g.vs.indices
-    visual_style['vertex_size']=40
-    visual_style["vertex_color"]="blue" 
-    #visual_style["vertex_label_size"] = 30
-    #visual_style["vertex_label_color"] = "white"
-    visual_style["edge_width"]=10
+    visual_style['vertex_color']="blue"
     
     # Flip positions because igraph has (0,0) in
     # the upper left corner
@@ -226,7 +222,7 @@ def get_rubber_band_positions(g, fixed_vertices, fixed_pos=None, V1=[], V2=[], g
     
     if fixed_pos and not len(fixed_pos) == len(fixed_vertices):
         print("ERROR: The length of the fixed positions must be equal to the length of the fixed vertices")
-        print("Using automated positions")
+        print("Using auto_layout positions")
         fixed_pos = None
     if not fixed_pos:
         layout = list(g.layout_auto())
@@ -418,11 +414,6 @@ def get_non_separating_cycle(g, cycle_basis):
                 break
             count += 1
     
-    #if non_separating_cycles:
-    #    print("Found cycles: ", non_separating_cycles)
-    #else:
-    #    print("Did not find cycle.")
-    
     return non_separating_cycles
 
 def load_graph(data_file_name, directed=False):
@@ -453,7 +444,7 @@ def main(filename, fixed_vertices=None, save_plot=False, shortcut=False):
     positions,_,_ = find_x_embedding_triconnected(g, shortcut=shortcut)
     
     if save_plot:
-        plot_filename = "{0}.png".format(filename.replace('.gml', ''))
+        plot_filename = "images/{0}.png".format(filename.replace('.gml', ''))
         plot_x_embedding(g, positions, plot_filename)
     else:
         plot_x_embedding(g, positions)
