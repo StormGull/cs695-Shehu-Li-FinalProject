@@ -34,9 +34,9 @@ def show_graph(g, color_nodes=None, file_name=None, **kw):
     
     nx.draw(g,with_labels=False,
             node_color=[node_color[id] for id in g.nodes()],
-            node_size = 20,
-            width=0.1,
-            linewidths=0.1,
+#            node_size = 20,
+#            width=0.1,
+#            linewidths=0.1,
             **kw,
     )
     if file_name:
@@ -246,6 +246,8 @@ def do_case_1_two_connected_subgraphs(g, q, power, verbose=False):
                 # check if we're done
                 if not V2 and find_set_power(V1) == 0:
                     solutions.append([V1, V - V1])
+                    if verbose:
+                        print("Solution 1")
                     done = True
                     break
                 # Otherwise, start filling V2
@@ -256,6 +258,8 @@ def do_case_1_two_connected_subgraphs(g, q, power, verbose=False):
                 # See if we're done
                 if find_set_power(V2) == 0:
                     solutions.append([V2, V - V2])
+                    if verbose:
+                        print("Solution 2")
                     done = True
                     break
 
@@ -269,6 +273,8 @@ def do_case_1_two_connected_subgraphs(g, q, power, verbose=False):
             V2.add(v)
             if find_set_power(V2) == 0:
                 solutions.append([V2.difference([nodes_list[0]]), V.difference(V2).union([nodes_list[0]])])
+                if verbose:
+                    print("Solution 3")
                 done = True
                 break
             if len(V2) >= size_V * (q-1)/q:
@@ -288,6 +294,8 @@ def do_case_1_two_connected_subgraphs(g, q, power, verbose=False):
                 V11.add(v)
             V_1 = V11.union(V3)
             solutions.append([V_1, V.difference(V_1)])
+            if verbose:
+                print("Solution 4")
             done = True
             continue
 
@@ -296,7 +304,9 @@ def do_case_1_two_connected_subgraphs(g, q, power, verbose=False):
                 V1.add(v)
                 if find_set_power(V1) == 0:
                     break
-            solutions.append(V1, V.difference(V1))
+            solutions.append([V1, V.difference(V1)])
+            if verbose:
+                print("Solution 5")
             done = True
             continue
 

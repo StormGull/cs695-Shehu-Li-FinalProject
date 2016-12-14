@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import igraph as ig
 import networkx as nx
 import math

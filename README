@@ -1,7 +1,4 @@
-Our project files consist of:
-
-
-
+BUILDING THE CODE
 
 Our programs are mostly written in Python 3.x. If you run it as an executable
 in Linux it will assume your Python is located in /usr/bin/python3. If
@@ -48,6 +45,111 @@ cl /EHsc /I "C:/Program Files/boost/boost_1_62_0" /Femake-st-numbering make-st-n
 
 There is no compliation required for the boost library, only that it be
 downloaded and included (it's entirely headers).
+
+RUNNING THE CODE
+
+The two main programs to run are dbcp_3_connected.py, and dbcp_2_connected.
+
+dbcp_3_connected.py:
+
+Make sure the directory with the compiled make-st-numbering binary is in your path. In Linux,
+'export PATH=$PATH:.', and running the program in that directory should suffice, if
+you've run "make install" as above to copy the file into place.
+
+The program takes several command line arguments. Here is the help:
+
+$ ./dbcp_3_connected.py -h
+usage: dbcp_3_connected.py [-h] [-f F] [-w] [-i]
+
+optional arguments:
+  -h, --help  show this help message and exit
+  -f F        Graph file to process.
+  -w          Write results to disk.
+  -i          Save images of solutions to disk.
+
+If you choose -w or -i, the resulting files will be written to
+reports/ or images/, respectively. The directories will be created if
+necessary.
+
+If you don't select the -i option, the images of the best solutions
+will display on the screen. By "best solutions," we mean the best by
+power, and the best by partition size. So far they have always been
+the same.
+
+dbcp_2_connected.py:
+
+$ ./dbcp_2_connected.py -h
+usage: dbcp_2_connected.py [-h] [-f F] [-v] [-q Q] [-w] [-i]
+
+optional arguments:
+  -h, --help  show this help message and exit
+  -f F        Graph GML file to process.
+  -v          Verbose mode.
+  -q Q        Q constant to determine how large the subcomponents can be after
+              finding a separating pair. Largest component can be (Q-1)/Q *
+              |V|.
+  -w          Write results to disk.
+  -i          Save images of solutions to disk.
+
+The -w and -i options word as above. This program will not pop up an
+image if the -i option is not set; so use -i and look in images/ to
+see the output.
+
+The -q option is important. For the sample graphs with 16 or fewer
+nodes, the default of -q 4 should work. For the 50 node graph, use
+-q 10. For the 3040 node graph, use -q 20.
+
+To get a detailed view of the position of the nodes of a 3-connected
+graph before they are embedded a circle, run find_x_embedding from the
+command line. Here is the help:
+
+$ ./find_x_embedding.py -h
+usage: find_x_embedding.py [-h] [-f F] [-v] [-p] [-s]
+
+optional arguments:
+  -h, --help  show this help message and exit
+  -f F        Graph file to process.
+  -v          Fixed vertices to use. Format: [v1, v2...,vn]
+  -p          Save images of plot to disk.
+  -s          Examine only one X-embedding
+
+Note: find_x_embedding.py will automatically prepend data/ to the file
+name, so it is unnecessary to do that.
+
+st_ordering.py:
+
+Mostly intended to be imported as a module, but if it is run on the
+the command line it will run several unit tests.
+
+DATA
+
+The following data sets are in the data/ directory:
+
+3-connected graphs:
+
+# Random graphs
+32-node-random-triconnected.gml
+8-node-random-triconnected.gml
+
+# ODGF generated
+GMLFile2.gml
+GMLFile3.gml
+GMLFile4.gml
+GMLFile5.gml
+GMLFile6.gml
+GMLFile7.gml
+GMLFile.gml
+pentagon_graph.txt
+
+# Strogatz and Watts data. The 4-digit number after "subset_" is the number of nodes.
+power_3_connected_subset_0047_18.gml
+
+2-connected graphs:
+
+# Strogatz and Watts data. The 4-digit number after "subset_" is the number of nodes.
+power_2_connected_subset_0016_75.gml
+power_2_connected_subset_0050_41.gml
+power_2_connected_subset_3040_76.gml
 
 DIVISION OF LABOR:
 

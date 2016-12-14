@@ -250,9 +250,11 @@ def test_bandes():
     ordering = find_st_ordering(g, 0, 1)
     verify_st_ordering(g, ordering, 0, 1)
     print(paper_ordering(ordering))
-    show_graph_with_ordering(g, ordering, labels=list('stghfbcaed'))
+#    show_graph_with_ordering(g, ordering, labels=list('stghfbcaed'))
+    show_graph(g,labels={i:l for i, l in enumerate(list('stghfbcaed'))})
     return
 
 if __name__ == '__main__':
+#    test_bandes()
     unittest.main()
         
