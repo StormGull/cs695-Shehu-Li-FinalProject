@@ -30,18 +30,33 @@ cd wykobi-master
 make
 make install
 
-For Windows 10 we built the C++ file with Microsoft Visual Studio, using the Developer Command Prompt. This tool is in the Visual Studio folder with the name "Developer Command Prompt for <Visual Studio version>" (we used Visual Studio Community 2013). From there, type the following commands:
+For Windows 10 we built the C++ file with Microsoft Visual Studio, using
+the Developer Command Prompt. This tool is in the Visual Studio folder
+with the name "Developer Command Prompt for <Visual Studio version>"
+(we used Visual Studio Community 2013). From there, type the following
+commands:
 
 cd <wykobi-master folder location>
-cl /EHsc /I <boost directory> /Femake-st-numbering make-st-
-	numbering.cpp
+cl /EHsc /I <boost directory> /Femake-st-numbering make-st-numbering.cpp
 
-Note: /Fe is is the exe output filename - there's no space after it. /I indicates additional include dictionaries. In this case, we need to tell it where to find our boost library. Mine is in: C:\Program Files\boost\boost_1_62_0. So the command looks like:
+Note: /Fe is is the exe output filename - there's no space after it.
+/I indicates additional include dictionaries. In this case, we need to
+tell it where to find our boost library. Mine is in:
+C:\Program Files\boost\boost_1_62_0. So the command looks like:
 
 cl /EHsc /I "C:/Program Files/boost/boost_1_62_0" /Femake-st-numbering make-st-numbering.cpp
 
-There is no compliation required for the boost library, only that it be downloaded and included (it's entirely headers).
+There is no compliation required for the boost library, only that it be
+downloaded and included (it's entirely headers).
 
+DIVISION OF LABOR:
 
-
-
+We both worked equally on the assignment.
+- For coding, we each wrote the following
+<> Paul: dbcp_2_connected.py, dbcp_2_connected.py, make-st-numbering.cpp
+<> Katie: find_x_embedding.py
+- We also both wrote some side programs to generate random 3-connected graphs for testing
+- Paul discovered and generated data files with the Strogatz and Watts Western United States Power Grid dataset 
+- Paul started the report, but we both worked significantly on it
+- Katie started the presentation, but we both contributed, primarily to the sections we
+implemented
