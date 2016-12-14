@@ -53,10 +53,10 @@ DIVISION OF LABOR:
 
 We both worked equally on the assignment.
 - For coding, we each wrote the following
-<> Paul: dbcp_2_connected.py, dbcp_2_connected.py, make-st-numbering.cpp
-<> Katie: find_x_embedding.py
+<> Paul: dbcp_2_connected.py, dbcp_3_connected.py, make-st-numbering.cpp
+<> Katie: find_x_embedding.py, minor additions to dbcp_3_connected
 - We also both wrote some side programs to generate random 3-connected graphs for testing
-- Paul discovered and generated data files with the Strogatz and Watts Western United States Power Grid dataset 
-- Paul started the report, but we both worked significantly on it
-- Katie started the presentation, but we both contributed, primarily to the sections we
-implemented
+- Paul discovered and generated data files with the Strogatz and Watts Western United States Power
+  Grid dataset 
+- We both worked on the report and presentation together, focusing primarily on the areas
+ that we had implemented.
