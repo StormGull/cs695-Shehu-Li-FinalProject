@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import igraph as ig
 import networkx as nx
 import math
@@ -35,7 +34,7 @@ def find_x_embedding_triconnected(g, fixed_vertices=None, shortcut=False):
         
     return layout, best_cycle, min_dist
 
-def find_x_embedding_fixed(g, fixed_vertices):
+def find_x_embedding_fixed(g, fixed_vertices): 
     positions = get_rubber_band_positions(g, fixed_vertices)
     min_dist = get_min_dist_between_v(positions)
     print("Minimum distance between points: {0} (X={1})".format(min_dist, fixed_vertices))
@@ -154,6 +153,7 @@ def plot_x_embedding(g, positions, filename=None):
     layout = [ [p[0],-p[1]] for p in positions]
     if filename:
         ig.plot(g, layout=layout, **visual_style).save(filename)
+        print("Saving plot to {0}.".format(filename))
     else:
         ig.plot(g, layout=layout, **visual_style)
 
@@ -442,8 +442,9 @@ def load_graph(data_file_name, directed=False):
     
 def main(filename, fixed_vertices=None, save_plot=False, shortcut=False):
     g = load_graph("data/" + filename, False)
-    positions,_,_ = find_x_embedding_triconnected(g, shortcut=shortcut)
     
+    positions,_,_ = find_x_embedding_triconnected(g, fixed_vertices=fixed_vertices, shortcut=shortcut)
+        
     if save_plot:
         plot_filename = "images/{0}.png".format(filename.replace('.gml', ''))
         plot_x_embedding(g, positions, plot_filename)
@@ -456,9 +457,10 @@ if __name__=="__main__":
                         help='Graph file to process.',
                         default=None)
     parser.add_argument('-v',
-                        action='store_true',
-                        help='Fixed vertices to use. Format: [v1, v2...,vn]',
-                        default=False)
+                        type=int,
+                        nargs='+',
+                        help='Fixed vertices to use. Format: v1 v2 ... vn',
+                        default=None)
     parser.add_argument('-p',
                         action='store_true',
                         help='Save images of plot to disk.',

@@ -104,17 +104,20 @@ graph before they are embedded a circle, run find_x_embedding from the
 command line. Here is the help:
 
 $ ./find_x_embedding.py -h
-usage: find_x_embedding.py [-h] [-f F] [-v] [-p] [-s]
+usage: find_x_embedding.py [-h] [-f F] [-v ...] [-p] [-s]
 
 optional arguments:
   -h, --help  show this help message and exit
   -f F        Graph file to process.
-  -v          Fixed vertices to use. Format: [v1, v2...,vn]
+  -v ...      Fixed vertices to use. Format: v1 v2 ... vn
   -p          Save images of plot to disk.
   -s          Examine only one X-embedding
 
 Note: find_x_embedding.py will automatically prepend data/ to the file
 name, so it is unnecessary to do that.
+
+Be careful when using -v to designate fixed vertices. If vertices
+are given that are not in the graph, the program *will* break.
 
 st_ordering.py:
 
@@ -131,7 +134,7 @@ The following data sets are in the data/ directory:
 32-node-random-triconnected.gml
 8-node-random-triconnected.gml
 
-# ODGF generated
+# ODGF generated (3-connected graphs of varying sizes)
 GMLFile2.gml
 GMLFile3.gml
 GMLFile4.gml
@@ -141,10 +144,10 @@ GMLFile7.gml
 GMLFile.gml
 
 # Hand created
+triangle_graph.txt
 pentagon_graph.txt
 ring_graph.txt
 square_graph.txt
-pentagon_graph.txt
 
 # Strogatz and Watts data. The 4-digit number after "subset_" is the number of nodes.
 power_3_connected_subset_0047_18.gml
